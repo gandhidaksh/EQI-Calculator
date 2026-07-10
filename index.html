@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Effluent Quality Index (EQI) Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --ink:#1a2027; --muted:#5b6773; --line:#e3e8ee; --bg:#f4f6f9;
+    --card:#ffffff; --shadow:0 1px 3px rgba(16,24,40,.06),0 1px 2px rgba(16,24,40,.04);
+    /* 6-category quality ramp — this IS the colour system */
+    --c0-fg:#1b5e20; --c0-bg:#e8f5e9; --c0-bar:#2e7d32;
+    --c1-fg:#33691e; --c1-bg:#f1f8e9; --c1-bar:#689f38;
+    --c2-fg:#8a6d00; --c2-bg:#fff8e1; --c2-bar:#f9a825;
+    --c3-fg:#a2470a; --c3-bg:#fff3e0; --c3-bar:#ef6c00;
+    --c4-fg:#bf360c; --c4-bg:#fbe9e7; --c4-bar:#e64a19;
+    --c5-fg:#8e0000; --c5-bg:#ffebee; --c5-bar:#c62828;
+  }
+  *{box-sizing:border-box}
+  body{
+    font-family:'Inter',system-ui,'Segoe UI',sans-serif;
+    margin:0;background:var(--bg);color:var(--ink);
+    -webkit-font-smoothing:antialiased;line-height:1.5;
+  }
+  .num{font-family:'IBM Plex Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 20px 60px}
+
+  header.hero{margin-bottom:22px}
+  .eyebrow{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  h1{font-size:1.7rem;line-height:1.15;margin:6px 0 6px;font-weight:700;letter-spacing:-.01em}
+  .lede{color:var(--muted);font-size:.95rem;max-width:60ch;margin:0}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:22px;margin-bottom:20px}
+  .card h2{font-size:1.02rem;margin:0 0 4px;font-weight:600}
+  .card .hint{color:var(--muted);font-size:.85rem;margin:0 0 16px}
+
+  /* ---- input table ---- */
+  table.io{width:100%;border-collapse:collapse}
+  table.io th,table.io td{padding:9px 8px;text-align:left}
+  table.io thead th{font-size:.74rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);font-weight:600}
+  table.io thead th.inlet{color:var(--c5-fg)}
+  table.io thead th.outlet{color:var(--c0-fg)}
+  table.io tbody tr+tr td{border-top:1px solid #eef1f5}
+  .pname{font-weight:600;font-size:.9rem}
+  .punit{color:var(--muted);font-size:.76rem}
+  input[type=number]{
+    width:110px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;
+    font-family:'IBM Plex Mono',monospace;font-size:.9rem;text-align:right;background:#fbfcfe;color:var(--ink);
+  }
+  input[type=number]:focus{outline:2px solid #93b4ff;outline-offset:1px;border-color:#93b4ff;background:#fff}
+  td.in-inlet input:focus{outline-color:#f3a58e;border-color:#f3a58e}
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:999px;font-size:.75rem;font-weight:600;white-space:nowrap}
+  .subidx{font-family:'IBM Plex Mono',monospace;font-size:.8rem;color:var(--muted)}
+  .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+  button.act{border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 14px;border-radius:9px;font:inherit;font-size:.85rem;font-weight:500;cursor:pointer;transition:.15s}
+  button.act:hover{background:#f4f6f9;border-color:#cdd5df}
+  button.act.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+  button.act.primary:hover{background:#333c47}
+
+  /* ---- signature: treatment journey ---- */
+  .journey{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:stretch}
+  .stage{border-radius:14px;padding:20px 18px;position:relative;overflow:hidden;border:1px solid rgba(0,0,0,.05)}
+  .stage .role{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;font-weight:700;opacity:.8}
+  .stage .big{font-size:3.1rem;font-weight:600;line-height:1;margin:10px 0 4px;font-family:'IBM Plex Mono',monospace}
+  .stage .catname{font-weight:700;font-size:1.02rem}
+  .stage .scaleout{font-size:.74rem;opacity:.75;margin-top:2px}
+  .gaugebar{height:7px;border-radius:99px;background:rgba(0,0,0,.08);margin-top:14px;overflow:hidden}
+  .gaugebar > span{display:block;height:100%;border-radius:99px;transition:width .5s ease}
+  .flow{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-width:150px;padding:0 6px}
+  .flow .delta{font-family:'IBM Plex Mono',monospace;font-size:1.5rem;font-weight:600;line-height:1.1}
+  .flow .deltalabel{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-top:2px}
+  .flow .transition{font-size:.8rem;color:var(--muted);margin-top:10px}
+  .arrow{width:100%;height:26px;margin:12px 0 4px;position:relative}
+  .arrow svg{width:100%;height:100%;display:block}
+  .verdict{margin-top:16px;padding:11px 14px;border-radius:10px;font-size:.88rem;font-weight:500;display:flex;gap:9px;align-items:flex-start}
+
+  /* ---- per-parameter ---- */
+  table.pp{width:100%;border-collapse:collapse;font-size:.86rem}
+  table.pp th,table.pp td{padding:9px 8px;text-align:right}
+  table.pp th:first-child,table.pp td:first-child{text-align:left}
+  table.pp thead th{font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);border-bottom:1px solid var(--line);font-weight:600}
+  table.pp tbody tr+tr td{border-top:1px solid #eef1f5}
+  .rem{font-family:'IBM Plex Mono',monospace;font-weight:600}
+  .rem.up{color:var(--c0-fg)} .rem.down{color:var(--c5-fg)} .rem.flat{color:var(--muted)}
+  .minichip{display:inline-block;min-width:34px;text-align:center;padding:2px 7px;border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:.78rem;font-weight:600}
+
+  .chartbox{position:relative;height:300px;margin-top:6px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+
+  /* ---- legend ---- */
+  .legend{display:flex;flex-wrap:wrap;gap:8px}
+  .legend .chip{cursor:default}
+  details.method{margin-top:14px;border-top:1px solid var(--line);padding-top:14px}
+  details.method summary{cursor:pointer;font-weight:600;font-size:.9rem;color:var(--ink)}
+  details.method p,details.method li{color:var(--muted);font-size:.86rem}
+  details.method code{background:#f4f6f9;padding:1px 6px;border-radius:5px;font-family:'IBM Plex Mono',monospace;font-size:.82rem}
+
+  footer.ack{text-align:center;color:var(--muted);font-size:.86rem;margin-top:34px;line-height:1.7}
+  footer.ack a{color:var(--c0-fg);text-decoration:none;font-weight:500}
+  footer.ack a:hover{text-decoration:underline}
+  .fb{margin-top:10px}
+  .badge{display:inline-block;background:#eef4fb;color:#2b5c9b;border-radius:8px;padding:5px 12px;font-size:.8rem;font-weight:600;margin-bottom:8px}
+
+  @media(max-width:760px){
+    .journey{grid-template-columns:1fr}
+    .flow{flex-direction:row;gap:18px;justify-content:space-between;padding:6px 4px}
+    .flow .transition{margin-top:0}
+    .arrow{transform:rotate(90deg);width:26px;height:60px;margin:0}
+    .grid2{grid-template-columns:1fr}
+    input[type=number]{width:88px}
+    .stage .big{font-size:2.6rem}
+  }
+  @media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="eyebrow">Sewage Treatment Plant · Delhi–NCR</div>
+    <h1>Effluent Quality Index Calculator</h1>
+    <p class="lede">Enter the seven quality parameters at a plant's <strong>inlet</strong> (raw sewage) and <strong>outlet</strong> (treated effluent). The tool grades each point on the 0–500 EQI scale and shows how far the water improved through treatment.</p>
+  </header>
+
+  <!-- INPUT -->
+  <section class="card">
+    <h2>Sample readings</h2>
+    <p class="hint">Values follow the thesis testing methods (APHA / BIS). pH is graded on both acidic and alkaline sides of neutral.</p>
+    <table class="io">
+      <thead>
+        <tr>
+          <th>Parameter</th>
+          <th>Unit</th>
+          <th class="inlet">Inlet (raw)</th>
+          <th class="outlet">Outlet (treated)</th>
+        </tr>
+      </thead>
+      <tbody id="inputRows"><!-- filled by JS --></tbody>
+    </table>
+    <div class="btnrow">
+      <button class="act primary" id="btnClear">Clear all</button>
+      <button class="act" id="btnDemo">Load well-treated example</button>
+      <button class="act" id="btnRef">Load Excel reference (EQI 363)</button>
+    </div>
+  </section>
+
+  <!-- JOURNEY (signature) -->
+  <section class="card">
+    <h2>Treatment result</h2>
+    <p class="hint">Lower EQI is better. A working plant should pull the water from a high (red) inlet score down to a low (green) outlet score.</p>
+    <div class="journey">
+      <div class="stage" id="stageIn">
+        <div class="role">Inlet · raw sewage</div>
+        <div class="big num" id="inScore">—</div>
+        <div class="catname" id="inCat">—</div>
+        <div class="scaleout">on the 0–500 EQI scale</div>
+        <div class="gaugebar"><span id="inGauge" style="width:0%"></span></div>
+      </div>
+
+      <div class="flow">
+        <div class="delta num" id="deltaVal">—</div>
+        <div class="deltalabel">EQI improvement</div>
+        <div class="arrow" id="arrowBox"></div>
+        <div class="transition" id="transition">enter readings to begin</div>
+      </div>
+
+      <div class="stage" id="stageOut">
+        <div class="role">Outlet · to drain</div>
+        <div class="big num" id="outScore">—</div>
+        <div class="catname" id="outCat">—</div>
+        <div class="scaleout">on the 0–500 EQI scale</div>
+        <div class="gaugebar"><span id="outGauge" style="width:0%"></span></div>
+      </div>
+    </div>
+    <div class="verdict" id="verdict" style="display:none"></div>
+  </section>
+
+  <!-- PER PARAMETER -->
+  <section class="card">
+    <h2>Change in each parameter</h2>
+    <p class="hint">Sub-index chips are coloured by quality band. Removal % is how much of the pollutant the plant took out; pH is shown as a shift toward neutral.</p>
+    <table class="pp">
+      <thead>
+        <tr>
+          <th>Parameter</th>
+          <th>Inlet</th>
+          <th>Outlet</th>
+          <th>Removal</th>
+          <th>Inlet index</th>
+          <th>Outlet index</th>
+        </tr>
+      </thead>
+      <tbody id="ppRows"></tbody>
+    </table>
+  </section>
+
+  <!-- CHARTS -->
+  <section class="card">
+    <h2>Visual comparison</h2>
+    <div class="grid2">
+      <div>
+        <p class="hint">Sub-index by parameter — inlet vs outlet (shorter bar = cleaner)</p>
+        <div class="chartbox"><canvas id="subChart"></canvas></div>
+      </div>
+      <div>
+        <p class="hint">Pollutant removal efficiency (%)</p>
+        <div class="chartbox"><canvas id="remChart"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LEGEND + METHOD -->
+  <section class="card">
+    <h2>EQI scale</h2>
+    <div class="legend" id="legend"></div>
+    <details class="method">
+      <summary>How the score is computed</summary>
+      <p>Each raw reading is placed in its quality band and <strong>linearly interpolated</strong> into a 0–500 sub-index:
+      <br><code>index = index_low + (reading − limit_low) / (limit_high − limit_low) × (index_high − index_low)</code></p>
+      <ul>
+        <li>Bands and limits are taken directly from the NGT / CPCB reference table for BOD, COD, TSS, TN, TP, FC and pH.</li>
+        <li>A parameter <strong>complies</strong> when its sub-index is ≤ 100 (Good or Satisfactory).</li>
+        <li>If every parameter complies, the overall EQI is the equal-weighted mean of all seven. If any parameter fails, the EQI is the mean of <em>only the failing</em> parameters — so a single serious breach cannot be hidden by good numbers elsewhere.</li>
+        <li>pH is judged on whichever side of 7.0 the reading falls; you cannot "remove" pH, so it is reported as a shift toward neutral rather than a removal %.</li>
+      </ul>
+    </details>
+  </section>
+
+  <footer class="ack">
+    <div class="badge">🌊 EQI Calculator · v1</div>
+    <div>👨‍💻 Developed by <strong>Daksh Gandhi</strong> under the guidance of <strong>Prof Sovik Das</strong> and <strong>Dr Anil</strong>,<br>Department of Civil &amp; Environmental Engineering, IIT Delhi</div>
+    <div class="fb">Feedback &amp; queries: <a href="mailto:dassovik@iitd.ac.in?subject=EQI%20Calculator%20Feedback">dassovik@iitd.ac.in</a></div>
+  </footer>
+
+</div>
+
+<script>
+/* ============================================================
+   EQI ENGINE  — band table transcribed from the reference sheet
+   ============================================================ */
+const EQI = [[0,50],[51,100],[101,200],[201,300],[301,400],[401,500]];
+const CATS = [
+  {n:'Good',        i:0}, {n:'Satisfactory', i:1}, {n:'Moderate', i:2},
+  {n:'Poor',        i:3}, {n:'Very Poor',    i:4}, {n:'Severe',   i:5}
+];
+const COLOR = i => ({
+  fg:getComputedStyle(document.documentElement).getPropertyValue(`--c${i}-fg`).trim(),
+  bg:getComputedStyle(document.documentElement).getPropertyValue(`--c${i}-bg`).trim(),
+  bar:getComputedStyle(document.documentElement).getPropertyValue(`--c${i}-bar`).trim(),
+});
+
+// [ [low,high] per band Good..Severe ]
+const LIMITS = {
+  BOD:[[0,10],[11,30],[31,50],[51,100],[101,200],[201,400]],
+  COD:[[0,50],[51,250],[251,350],[351,450],[451,550],[551,600]],
+  TSS:[[0,20],[21,100],[101,200],[201,350],[351,600],[601,1000]],
+  TN :[[0,10],[10.01,20],[20.01,30],[30.01,40],[40.01,50],[50.01,60]],
+  TP :[[0,1],[1.01,2],[2.01,2.40],[2.41,4.80],[4.81,7.50],[7.51,15]],
+  FC :[[1,100],[101,230],[231,1000],[1001,2500],[2501,10000],[10001,100000]],
+};
+const PH_ACID =[[6.80,7.00],[6.50,6.79],[6.20,6.49],[5.50,6.19],[5.00,5.49],[4.00,4.99]];
+const PH_ALK  =[[7.00,7.40],[7.41,8.50],[8.51,8.80],[8.81,9.20],[9.21,9.80],[9.81,11.00]];
+
+const PARAMS = [
+  {key:'BOD',label:'BOD',unit:'mg/L',conc:true},
+  {key:'COD',label:'COD',unit:'mg/L',conc:true},
+  {key:'TSS',label:'TSS',unit:'mg/L',conc:true},
+  {key:'TN', label:'TN', unit:'mg/L',conc:true},
+  {key:'TP', label:'TP', unit:'mg/L',conc:true},
+  {key:'FC', label:'FC', unit:'MPN/100mL',conc:true},
+  {key:'pH', label:'pH', unit:'—',conc:false},
+];
+
+// ascending: higher reading = worse (matches the sheet's IFS logic)
+function scoreAscending(raw, bands){
+  let b = 5;                                   // TRUE()/else branch = Severe
+  for(let i=0;i<6;i++){ if(raw <= bands[i][1]){ b=i; break; } }
+  const [eLo,eHi]=EQI[b], [lo,hi]=bands[b];
+  return eLo + (raw-lo)/(hi-lo)*(eHi-eLo);
+}
+// acidic pH: lower reading = worse, so interpolate from the neutral (high) end
+function scoreAcid(raw){
+  let b = 5;
+  for(let i=0;i<6;i++){ if(raw >= PH_ACID[i][0]){ b=i; break; } }
+  const [eLo,eHi]=EQI[b], [lo,hi]=PH_ACID[b];
+  return eLo + (hi-raw)/(hi-lo)*(eHi-eLo);
+}
+function subIndex(key, raw){
+  if(raw===null || isNaN(raw)) return null;
+  let s;
+  if(key==='pH')      s = (raw>=7.0) ? scoreAscending(raw,PH_ALK) : scoreAcid(raw);
+  else                s = scoreAscending(raw, LIMITS[key]);
+  return Math.round(s);                         // sheet uses the rounded "Display" value
+}
+function catOf(score){
+  for(let i=0;i<6;i++){ if(score<=EQI[i][1]) return i; }
+  return 5;
+}
+// overall EQI with the sheet's compliance-aware weighting
+function overallEQI(scores){                     // scores: {key:index}
+  const vals = PARAMS.map(p=>scores[p.key]).filter(v=>v!==null);
+  if(vals.length===0) return null;
+  const fails = vals.filter(v=>v>100);
+  const pool  = fails.length ? fails : vals;     // any breach → grade on the breaches only
+  const mean  = pool.reduce((a,b)=>a+b,0)/pool.length;
+  return Math.round(mean);
+}
+
+/* ============================================================
+   PRESETS
+   ============================================================ */
+const PRESETS = {
+  clear: {inlet:{},outlet:{}},
+  demo: {
+    inlet: {BOD:210,COD:480,TSS:350,TN:48,TP:8.5,FC:45000,pH:7.5},
+    outlet:{BOD:9,  COD:48, TSS:18, TN:9, TP:0.9,FC:90,   pH:7.2},
+  },
+  // exact sample from the reference sheet → outlet EQI must read 363
+  ref: {
+    inlet: {BOD:210,COD:480,TSS:350,TN:48,TP:8.5,FC:45000,pH:7.5},
+    outlet:{BOD:25, COD:224,TSS:459,TN:17,TP:7,  FC:70,   pH:7.75},
+  },
+};
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+const $ = id => document.getElementById(id);
+let subChart, remChart;
+
+function buildInputs(){
+  const tb = $('inputRows');
+  tb.innerHTML = PARAMS.map(p=>`
+    <tr>
+      <td><span class="pname">${p.label}</span></td>
+      <td class="punit">${p.unit}</td>
+      <td class="in-inlet"><input type="number" step="any" inputmode="decimal" data-side="inlet" data-key="${p.key}" placeholder="—"></td>
+      <td class="in-outlet"><input type="number" step="any" inputmode="decimal" data-side="outlet" data-key="${p.key}" placeholder="—"></td>
+    </tr>`).join('');
+  tb.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',recompute));
+}
+function readSide(side){
+  const o={};
+  document.querySelectorAll(`input[data-side="${side}"]`).forEach(inp=>{
+    const v=inp.value.trim();
+    o[inp.dataset.key] = v==='' ? null : parseFloat(v);
+  });
+  return o;
+}
+function applyPreset(name){
+  const p=PRESETS[name];
+  document.querySelectorAll('input[data-side]').forEach(inp=>{
+    const v=p[inp.dataset.side][inp.dataset.key];
+    inp.value = (v===undefined||v===null) ? '' : v;
+  });
+  recompute();
+}
+
+function paintStage(stageEl,scoreEl,catEl,gaugeEl,eqi){
+  if(eqi===null){
+    scoreEl.textContent='—'; catEl.textContent='—';
+    stageEl.style.background='#f7f9fc'; stageEl.style.color='var(--ink)';
+    gaugeEl.style.width='0%'; return null;
+  }
+  const ci=catOf(eqi), c=COLOR(ci);
+  scoreEl.textContent=eqi;
+  catEl.textContent=CATS[ci].n;
+  stageEl.style.background=c.bg; stageEl.style.color=c.fg;
+  gaugeEl.style.width=Math.min(100,eqi/500*100)+'%';
+  gaugeEl.style.background=c.bar;
+  return ci;
+}
+
+function recompute(){
+  const inRaw=readSide('inlet'), outRaw=readSide('outlet');
+  const inS={}, outS={};
+  PARAMS.forEach(p=>{ inS[p.key]=subIndex(p.key,inRaw[p.key]); outS[p.key]=subIndex(p.key,outRaw[p.key]); });
+  const inEQI=overallEQI(inS), outEQI=overallEQI(outS);
+
+  const inCi = paintStage($('stageIn'),$('inScore'),$('inCat'),$('inGauge'),inEQI);
+  const outCi= paintStage($('stageOut'),$('outScore'),$('outCat'),$('outGauge'),outEQI);
+
+  // delta + arrow + verdict
+  const flowArrow=$('arrowBox'), verdict=$('verdict');
+  if(inEQI!==null && outEQI!==null){
+    const d=inEQI-outEQI;                       // + = improvement
+    const good = d>=0;
+    const col = good ? COLOR(0).bar : COLOR(5).bar;
+    $('deltaVal').textContent=(d>=0?'−':'+')+Math.abs(d);
+    $('deltaVal').style.color=col;
+    $('transition').innerHTML=`${CATS[inCi].n} <span style="opacity:.5">→</span> ${CATS[outCi].n}`;
+    flowArrow.innerHTML=arrowSVG(col);
+    const pct = inEQI>0 ? Math.round(d/inEQI*100) : 0;
+    verdict.style.display='flex';
+    if(good && outCi<=1){
+      verdict.style.background=COLOR(0).bg; verdict.style.color=COLOR(0).fg;
+      verdict.innerHTML=`✓ &nbsp;Treatment improved the EQI by <strong>${d} points (${pct}%)</strong>. The effluent leaves as <strong>${CATS[outCi].n}</strong> — within standard.`;
+    } else if(good){
+      verdict.style.background=COLOR(2).bg; verdict.style.color=COLOR(2).fg;
+      verdict.innerHTML=`△ &nbsp;EQI improved by <strong>${d} points (${pct}%)</strong>, but the outlet is still <strong>${CATS[outCi].n}</strong> — not yet compliant. Check the flagged parameters below.`;
+    } else {
+      verdict.style.background=COLOR(5).bg; verdict.style.color=COLOR(5).fg;
+      verdict.innerHTML=`✕ &nbsp;The outlet EQI is <strong>worse</strong> than the inlet. Re-check sampling or plant operation.`;
+    }
+  } else {
+    $('deltaVal').textContent='—'; $('deltaVal').style.color='var(--muted)';
+    $('transition').textContent='enter both inlet and outlet readings';
+    flowArrow.innerHTML=arrowSVG('#c7d0da');
+    verdict.style.display='none';
+  }
+
+  renderParamTable(inRaw,outRaw,inS,outS);
+  renderCharts(inS,outS,inRaw,outRaw);
+}
+
+function arrowSVG(color){
+  return `<svg viewBox="0 0 120 26" preserveAspectRatio="none" aria-hidden="true">
+    <defs><marker id="ah" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="${color}"/></marker></defs>
+    <line x1="4" y1="13" x2="104" y2="13" stroke="${color}" stroke-width="3" stroke-linecap="round" marker-end="url(#ah)"/>
+  </svg>`;
+}
+
+function miniChip(score){
+  if(score===null) return '<span class="subidx">—</span>';
+  const c=COLOR(catOf(score));
+  return `<span class="minichip" style="background:${c.bg};color:${c.fg}">${score}</span>`;
+}
+function renderParamTable(inRaw,outRaw,inS,outS){
+  $('ppRows').innerHTML = PARAMS.map(p=>{
+    const iv=inRaw[p.key], ov=outRaw[p.key];
+    let rem='<span class="rem flat">—</span>';
+    if(iv!=null && ov!=null){
+      if(p.conc && iv>0){
+        const r=Math.round((iv-ov)/iv*100);
+        const cls = r>0?'up':(r<0?'down':'flat');
+        rem=`<span class="rem ${cls}">${r>0?'↓ ':(r<0?'↑ ':'')}${Math.abs(r)}%</span>`;
+      } else if(!p.conc){
+        const shift=(ov-iv);
+        const toward = Math.abs(ov-7.0) < Math.abs(iv-7.0);
+        rem=`<span class="rem ${toward?'up':'down'}">${shift>=0?'+':'−'}${Math.abs(shift).toFixed(2)} pH</span>`;
+      }
+    }
+    const fmt=v=>v==null?'—':(p.key==='FC'?v.toLocaleString():v);
+    return `<tr>
+      <td><span class="pname">${p.label}</span> <span class="punit">${p.unit}</span></td>
+      <td class="num">${fmt(iv)}</td>
+      <td class="num">${fmt(ov)}</td>
+      <td>${rem}</td>
+      <td>${miniChip(inS[p.key])}</td>
+      <td>${miniChip(outS[p.key])}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderCharts(inS,outS,inRaw,outRaw){
+  const labels=PARAMS.map(p=>p.label);
+  const inData=PARAMS.map(p=>inS[p.key]??0);
+  const outData=PARAMS.map(p=>outS[p.key]??0);
+  const remData=PARAMS.map(p=>{
+    const iv=inRaw[p.key],ov=outRaw[p.key];
+    if(p.conc && iv!=null && ov!=null && iv>0) return Math.max(0,Math.round((iv-ov)/iv*100));
+    return null;
+  });
+  const cIn=COLOR(5).bar, cOut=COLOR(0).bar;
+
+  const baseOpts={
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{labels:{font:{family:'Inter',size:12},boxWidth:12}}},
+    scales:{y:{beginAtZero:true,grid:{color:'#eef1f5'},ticks:{font:{family:'IBM Plex Mono'}}},
+            x:{grid:{display:false},ticks:{font:{family:'Inter'}}}}
+  };
+
+  if(!subChart){
+    subChart=new Chart($('subChart'),{type:'bar',
+      data:{labels,datasets:[
+        {label:'Inlet',data:inData,backgroundColor:cIn,borderRadius:5},
+        {label:'Outlet',data:outData,backgroundColor:cOut,borderRadius:5}]},
+      options:{...baseOpts,scales:{...baseOpts.scales,y:{...baseOpts.scales.y,max:500,title:{display:true,text:'Sub-index (0–500)',font:{family:'Inter',size:11}}}}}
+    });
+  } else { subChart.data.datasets[0].data=inData; subChart.data.datasets[1].data=outData; subChart.update(); }
+
+  if(!remChart){
+    remChart=new Chart($('remChart'),{type:'bar',
+      data:{labels:PARAMS.filter(p=>p.conc).map(p=>p.label),
+            datasets:[{label:'Removal %',data:remData.filter((_,i)=>PARAMS[i].conc),
+              backgroundColor:PARAMS.filter(p=>p.conc).map(()=>COLOR(1).bar),borderRadius:5}]},
+      options:{...baseOpts,plugins:{legend:{display:false}},
+        scales:{...baseOpts.scales,y:{...baseOpts.scales.y,max:100,title:{display:true,text:'% removed',font:{family:'Inter',size:11}}}}}
+    });
+  } else {
+    remChart.data.datasets[0].data=remData.filter((_,i)=>PARAMS[i].conc); remChart.update();
+  }
+}
+
+function buildLegend(){
+  $('legend').innerHTML=CATS.map(c=>{
+    const col=COLOR(c.i);
+    const [lo,hi]=EQI[c.i];
+    return `<span class="chip" style="background:${col.bg};color:${col.fg}">
+      <span style="width:9px;height:9px;border-radius:50%;background:${col.bar};display:inline-block"></span>
+      ${c.n} · ${lo}–${hi}</span>`;
+  }).join('');
+}
+
+/* init */
+buildInputs();
+buildLegend();
+$('btnClear').onclick=()=>applyPreset('clear');
+$('btnDemo').onclick=()=>applyPreset('demo');
+$('btnRef').onclick=()=>applyPreset('ref');
+applyPreset('demo');   // open on a clear, well-treated example
+</script>
+</body>
+</html>
