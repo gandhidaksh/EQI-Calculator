@@ -86,6 +86,7 @@
   table.pp tbody tr+tr td{border-top:1px solid #eef1f5}
   .rem{font-family:'IBM Plex Mono',monospace;font-weight:600}
   .rem.up{color:var(--c0-fg)} .rem.down{color:var(--c5-fg)} .rem.flat{color:var(--muted)}
+  .rem.warn{color:var(--c2-fg)}
   .minichip{display:inline-block;min-width:34px;text-align:center;padding:2px 7px;border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:.78rem;font-weight:600}
 
   .chartbox{position:relative;height:300px;margin-top:6px}
@@ -129,7 +130,6 @@
   <!-- INPUT -->
   <section class="card">
     <h2>Sample readings</h2>
-    <p class="hint">Values follow the thesis testing methods (APHA / BIS). pH is graded on both acidic and alkaline sides of neutral.</p>
     <table class="io">
       <thead>
         <tr>
@@ -219,20 +219,28 @@
     <div class="legend" id="legend"></div>
     <details class="method">
       <summary>How the score is computed</summary>
-      <p>Each raw reading is placed in its quality band and <strong>linearly interpolated</strong> into a 0–500 sub-index:
+      <p>Most raw readings are placed in their quality band and <strong>linearly interpolated</strong> into a 0–500 sub-index:
       <br><code>index = index_low + (reading − limit_low) / (limit_high − limit_low) × (index_high − index_low)</code></p>
+      <p><strong>Two parameters are handled differently:</strong></p>
       <ul>
-        <li>Bands and limits are taken directly from the NGT / CPCB reference table for BOD, COD, TSS, TN, TP, FC and pH.</li>
+        <li><strong>FC — logarithmic.</strong> Faecal coliform in sewage and effluent varies across several orders of magnitude (the scale runs 1 to 100,000 MPN/100 mL), so a linear fit inside a band would distort the score. FC is interpolated in log space instead:
+        <br><code>index = index_low + (index_high − index_low) × (log C − log C_low) / (log C_high − log C_low)</code></li>
+        <li><strong>pH — two-sided.</strong> pH is the only parameter where a reading can be bad in <em>either</em> direction. Readings at or above 7.0 are graded on the alkaline bands; readings below 7.0 are graded on the acidic bands, where the interpolation runs in reverse because a <em>lower</em> pH is worse. Since pH cannot be "removed", its change is reported as a shift toward or away from neutral rather than a removal %.</li>
+      </ul>
+      <p><strong>Combining the seven sub-indices:</strong></p>
+      <ul>
+        <li>Bands and limits are taken directly from the NGT / CPCB reference table.</li>
         <li>A parameter <strong>complies</strong> when its sub-index is ≤ 100 (Good or Satisfactory).</li>
         <li>If every parameter complies, the overall EQI is the equal-weighted mean of all seven. If any parameter fails, the EQI is the mean of <em>only the failing</em> parameters — so a single serious breach cannot be hidden by good numbers elsewhere.</li>
-        <li>pH is judged on whichever side of 7.0 the reading falls; you cannot "remove" pH, so it is reported as a shift toward neutral rather than a removal %.</li>
       </ul>
     </details>
   </section>
 
   <footer class="ack">
     <div class="badge">🌊 EQI Calculator · v1</div>
-    <div>👨‍💻 Developed by <strong>Daksh Gandhi</strong> under the guidance of <strong>Prof Sovik Das</strong> and <strong>Dr Anil</strong>,<br>Department of Civil &amp; Environmental Engineering, IIT Delhi</div>
+    <div>📐 EQI methodology formulated by <strong>Dipansh Jain</strong></div>
+    <div>👨‍💻 Calculator developed by <strong>Daksh Gandhi</strong></div>
+    <div>Under the guidance of <strong>Prof Sovik Das</strong> and <strong>Dr Anil</strong>,<br>Department of Civil &amp; Environmental Engineering, IIT Delhi</div>
     <div class="fb">Feedback &amp; queries: <a href="mailto:dassovik@iitd.ac.in?subject=EQI%20Calculator%20Feedback">dassovik@iitd.ac.in</a></div>
   </footer>
 
@@ -272,7 +280,7 @@ const PARAMS = [
   {key:'TN', label:'TN', unit:'mg/L',conc:true},
   {key:'TP', label:'TP', unit:'mg/L',conc:true},
   {key:'FC', label:'FC', unit:'MPN/100mL',conc:true},
-  {key:'pH', label:'pH', unit:'—',conc:false},
+  {key:'pH', label:'pH', unit:'',conc:false},
 ];
 
 // ascending: higher reading = worse (matches the sheet's IFS logic)
@@ -281,6 +289,16 @@ function scoreAscending(raw, bands){
   for(let i=0;i<6;i++){ if(raw <= bands[i][1]){ b=i; break; } }
   const [eLo,eHi]=EQI[b], [lo,hi]=bands[b];
   return eLo + (raw-lo)/(hi-lo)*(eHi-eLo);
+}
+// FC spans 1 -> 100,000 (five orders of magnitude), so it is interpolated in LOG space.
+// Thesis Eq. 3.3:  SI = L_low + (I_high - I_low) * (log C - log C_low) / (log C_high - log C_low)
+function scoreLog(raw, bands){
+  const r = Math.max(raw, 1);                  // log(0) is undefined; FC scale starts at 1
+  let b = 5;
+  for(let i=0;i<6;i++){ if(r <= bands[i][1]){ b=i; break; } }
+  const [eLo,eHi]=EQI[b], [lo,hi]=bands[b];
+  const lLo = Math.log10(Math.max(lo,1)), lHi = Math.log10(hi);
+  return eLo + (Math.log10(r) - lLo)/(lHi - lLo)*(eHi - eLo);
 }
 // acidic pH: lower reading = worse, so interpolate from the neutral (high) end
 function scoreAcid(raw){
@@ -293,8 +311,9 @@ function subIndex(key, raw){
   if(raw===null || isNaN(raw)) return null;
   let s;
   if(key==='pH')      s = (raw>=7.0) ? scoreAscending(raw,PH_ALK) : scoreAcid(raw);
+  else if(key==='FC') s = scoreLog(raw, LIMITS.FC);      // log scale — thesis Eq. 3.3
   else                s = scoreAscending(raw, LIMITS[key]);
-  return Math.round(s);                         // sheet uses the rounded "Display" value
+  return Math.round(s);
 }
 function catOf(score){
   for(let i=0;i<6;i++){ if(score<=EQI[i][1]) return i; }
@@ -437,12 +456,21 @@ function renderParamTable(inRaw,outRaw,inS,outS){
     if(iv!=null && ov!=null){
       if(p.conc && iv>0){
         const r=Math.round((iv-ov)/iv*100);
-        const cls = r>0?'up':(r<0?'down':'flat');
+        let cls;
+        if(p.key==='FC'){
+          // FC is graded on where the OUTLET lands, not merely on whether it fell:
+          // < 100 = Good (green), 100–230 = Satisfactory (amber), > 230 = non-compliant (red)
+          cls = ov < 100 ? 'up' : (ov <= 230 ? 'warn' : 'down');
+        } else {
+          cls = r>0?'up':(r<0?'down':'flat');
+        }
         rem=`<span class="rem ${cls}">${r>0?'↓ ':(r<0?'↑ ':'')}${Math.abs(r)}%</span>`;
       } else if(!p.conc){
-        const shift=(ov-iv);
-        const toward = Math.abs(ov-7.0) < Math.abs(iv-7.0);
-        rem=`<span class="rem ${toward?'up':'down'}">${shift>=0?'+':'−'}${Math.abs(shift).toFixed(2)} pH</span>`;
+        const shift = ov - iv;                       // + = pH rose, − = pH fell
+        const toward = Math.abs(ov-7.0) < Math.abs(iv-7.0);   // green if moving toward neutral
+        const cls = Math.abs(shift) < 0.005 ? 'flat' : (toward ? 'up' : 'down');
+        const arrow = Math.abs(shift) < 0.005 ? '' : (shift < 0 ? '↓ ' : '↑ ');
+        rem=`<span class="rem ${cls}">${arrow}${Math.abs(shift).toFixed(2)} pH</span>`;
       }
     }
     const fmt=v=>v==null?'—':(p.key==='FC'?v.toLocaleString():v);
