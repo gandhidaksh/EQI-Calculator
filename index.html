@@ -32,7 +32,7 @@
   header.hero{margin-bottom:22px}
   .eyebrow{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600}
   h1{font-size:1.7rem;line-height:1.15;margin:6px 0 6px;font-weight:700;letter-spacing:-.01em}
-  .lede{color:var(--muted);font-size:.95rem;max-width:60ch;margin:0}
+  .lede{color:var(--muted);font-size:.95rem;max-width:104ch;margin:0}
 
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:22px;margin-bottom:20px}
   .card h2{font-size:1.02rem;margin:0 0 4px;font-weight:600}
@@ -79,7 +79,8 @@
   .verdict{margin-top:16px;padding:11px 14px;border-radius:10px;font-size:.88rem;font-weight:500;display:flex;gap:9px;align-items:flex-start}
 
   /* ---- per-parameter ---- */
-  table.pp{width:100%;border-collapse:collapse;font-size:.86rem}
+  .tscroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table.pp{width:100%;border-collapse:collapse;font-size:.86rem;min-width:340px}
   table.pp th,table.pp td{padding:9px 8px;text-align:right}
   table.pp th:first-child,table.pp td:first-child{text-align:left}
   table.pp thead th{font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);border-bottom:1px solid var(--line);font-weight:600}
@@ -112,8 +113,19 @@
     .flow .transition{margin-top:0}
     .arrow{transform:rotate(90deg);width:26px;height:60px;margin:0}
     .grid2{grid-template-columns:1fr}
-    input[type=number]{width:88px}
+    input[type=number]{width:72px;padding:8px 6px}
     .stage .big{font-size:2.6rem}
+    table.io th,table.io td,table.pp th,table.pp td{padding:8px 4px}
+    table.pp{font-size:.78rem}
+    .punit{font-size:.68rem}
+    .wrap{padding:20px 12px 48px}
+  }
+  @media(max-width:430px){
+    /* the unit column is the least load-bearing information — drop it before anything wraps badly */
+    table.io th:nth-child(2), table.io td:nth-child(2){display:none}
+    input[type=number]{width:100%;min-width:0}
+    .card{padding:16px 13px}
+    table.pp{min-width:300px}
   }
   @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 </style>
@@ -183,6 +195,7 @@
   <section class="card">
     <h2>Change in each parameter</h2>
     <p class="hint">Sub-index chips are coloured by quality band. Removal % is how much of the pollutant the plant took out; pH is shown as a shift toward neutral.</p>
+    <div class="tscroll">
     <table class="pp">
       <thead>
         <tr>
@@ -196,6 +209,7 @@
       </thead>
       <tbody id="ppRows"></tbody>
     </table>
+    </div>
   </section>
 
   <!-- CHARTS -->
@@ -238,9 +252,8 @@
 
   <footer class="ack">
     <div class="badge">🌊 EQI Calculator · v1</div>
-    <div>📐 EQI methodology formulated by <strong>Dipansh Jain</strong></div>
-    <div>👨‍💻 Calculator developed by <strong>Daksh Gandhi</strong></div>
-    <div>Under the guidance of <strong>Prof Sovik Das</strong> and <strong>Dr Anil</strong>,<br>Department of Civil &amp; Environmental Engineering, IIT Delhi</div>
+    <div>📐 EQI methodology formulated by <strong>Dipansh Jain</strong> &nbsp;·&nbsp; 👨‍💻 Calculator developed by <strong>Daksh Gandhi</strong></div>
+    <div>Under the guidance of <strong>Prof Sovik Das</strong> and <strong>Dr Anil</strong>, Department of Civil &amp; Environmental Engineering, IIT Delhi</div>
     <div class="fb">Feedback &amp; queries: <a href="mailto:dassovik@iitd.ac.in?subject=EQI%20Calculator%20Feedback">dassovik@iitd.ac.in</a></div>
   </footer>
 
