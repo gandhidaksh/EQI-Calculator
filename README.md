@@ -1,4 +1,3 @@
-[README.md](https://github.com/user-attachments/files/29934686/README.md)
 # Effluent Quality Index (EQI) Calculator
 
 A single-page tool that grades sewage treatment plant (STP) performance by scoring the
@@ -47,13 +46,25 @@ index = index_low + (reading − limit_low) / (limit_high − limit_low) × (ind
   ```
   index = index_low + (index_high − index_low) × (log C − log C_low) / (log C_high − log C_low)
   ```
+  For the same reason FC *reduction* is reported as **log removal** — log₁₀(inlet ÷ outlet) —
+  not a percentage. 2 log = a 100-fold reduction; 3 log = 1000-fold. Reporting "99%" vs "99.9%"
+  would hide a full order of magnitude.
 - **pH — two-sided.** pH can be bad in either direction. Readings ≥ 7.0 are graded on the
   alkaline bands; readings < 7.0 on the acidic bands, where interpolation runs in reverse
   (a lower pH is worse). pH change is reported as a shift toward neutral, not a removal %.
 
-**Combining the sub-indices:** if every parameter complies, the EQI is the equal-weighted mean
-of all seven. If any parameter fails, the EQI is the mean of *only the failing* parameters — so
-a single serious breach cannot be masked by good numbers elsewhere.
+**Compliance:** a parameter complies when its sub-index is **≤ 100** — within the **CPCB** limit.
+A sub-index **≤ 50** also meets the stricter **NGT** limit. Above 100 is non-compliant.
+
+Bands and limits derive from the norms of the [Central Pollution Control Board (CPCB)](https://cpcb.nic.in/)
+and the [National Green Tribunal (NGT)](https://www.greentribunal.gov.in/).
+
+**Combining the sub-indices:**
+
+- If **every parameter complies**, the overall EQI is the **maximum** of the seven sub-indices —
+  the plant is graded on its worst-performing parameter.
+- If **any parameter fails**, the overall EQI is the **weighted mean of the non-compliant
+  parameters only** — so a serious breach cannot be diluted by good numbers elsewhere.
 
 ## Validation
 

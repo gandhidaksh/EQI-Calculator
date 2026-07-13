@@ -12,13 +12,16 @@
   :root{
     --ink:#1a2027; --muted:#5b6773; --line:#e3e8ee; --bg:#f4f6f9;
     --card:#ffffff; --shadow:0 1px 3px rgba(16,24,40,.06),0 1px 2px rgba(16,24,40,.04);
-    /* 6-category quality ramp — this IS the colour system */
-    --c0-fg:#1b5e20; --c0-bg:#e8f5e9; --c0-bar:#2e7d32;
-    --c1-fg:#33691e; --c1-bg:#f1f8e9; --c1-bar:#689f38;
-    --c2-fg:#8a6d00; --c2-bg:#fff8e1; --c2-bar:#f9a825;
-    --c3-fg:#a2470a; --c3-bg:#fff3e0; --c3-bar:#ef6c00;
-    --c4-fg:#bf360c; --c4-bg:#fbe9e7; --c4-bar:#e64a19;
-    --c5-fg:#8e0000; --c5-bg:#ffebee; --c5-bar:#c62828;
+    /* 6-category quality ramp — this IS the colour system.
+       Each step must be distinguishable from its neighbours at a glance, so the ramp
+       walks green -> lime -> amber -> orange -> deep orange -> red. */
+    --c0-fg:#1b5e20; --c0-bg:#dff0e1; --c0-bar:#2e7d32;   /* Good         */
+    --c1-fg:#33691e; --c1-bg:#eaf4d3; --c1-bar:#7cb342;   /* Satisfactory */
+    --c2-fg:#8a6d00; --c2-bg:#fdf0cc; --c2-bar:#f9a825;   /* Moderate     */
+    --c3-fg:#a2470a; --c3-bg:#fde4cd; --c3-bar:#ef6c00;   /* Poor         */
+    --c4-fg:#bf360c; --c4-bg:#fbd8cd; --c4-bar:#e64a19;   /* Very Poor    */
+    --c5-fg:#8e0000; --c5-bg:#f9ccd0; --c5-bar:#c62828;   /* Severe       */
+    --c6-fg:#4a0072; --c6-bg:#e6d4ee; --c6-bar:#6a1b9a;   /* Severe+  >500 */
   }
   *{box-sizing:border-box}
   body{
@@ -54,6 +57,9 @@
   input[type=number]:focus{outline:2px solid #93b4ff;outline-offset:1px;border-color:#93b4ff;background:#fff}
   td.in-inlet input:focus{outline-color:#f3a58e;border-color:#f3a58e}
   .chip{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:999px;font-size:.75rem;font-weight:600;white-space:nowrap}
+  .catcell{white-space:nowrap}
+  .catchip{display:inline-block;padding:3px 10px;border-radius:999px;border:1px solid;font-size:.76rem;font-weight:600;white-space:nowrap}
+  .catnone{color:var(--muted);font-size:.85rem}
   .subidx{font-family:'IBM Plex Mono',monospace;font-size:.8rem;color:var(--muted)}
   .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
   button.act{border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 14px;border-radius:9px;font:inherit;font-size:.85rem;font-weight:500;cursor:pointer;transition:.15s}
@@ -63,10 +69,14 @@
 
   /* ---- signature: treatment journey ---- */
   .journey{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:stretch}
-  .stage{border-radius:14px;padding:20px 18px;position:relative;overflow:hidden;border:1px solid rgba(0,0,0,.05)}
+  .stage{border-radius:14px;padding:20px 18px;position:relative;overflow:hidden;border:2px solid transparent;transition:background .25s,border-color .25s}
   .stage .role{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;font-weight:700;opacity:.8}
-  .stage .big{font-size:3.1rem;font-weight:600;line-height:1;margin:10px 0 4px;font-family:'IBM Plex Mono',monospace}
+  .stage .scoreline{display:flex;align-items:baseline;flex-wrap:wrap;gap:9px;margin:10px 0 4px}
+  .stage .big{font-size:3.1rem;font-weight:600;line-height:1;font-family:'IBM Plex Mono',monospace}
+  .stage .drivers{font-size:.86rem;font-weight:600;opacity:.9;line-height:1.35;letter-spacing:.01em}
+  .stage .catline{display:flex;align-items:baseline;flex-wrap:wrap;gap:7px;margin-top:2px}
   .stage .catname{font-weight:700;font-size:1.02rem}
+  .stage .complytag{font-size:.78rem;font-weight:500;opacity:.85;line-height:1.3}
   .stage .scaleout{font-size:.74rem;opacity:.75;margin-top:2px}
   .gaugebar{height:7px;border-radius:99px;background:rgba(0,0,0,.08);margin-top:14px;overflow:hidden}
   .gaugebar > span{display:block;height:100%;border-radius:99px;transition:width .5s ease}
@@ -96,10 +106,36 @@
   /* ---- legend ---- */
   .legend{display:flex;flex-wrap:wrap;gap:8px}
   .legend .chip{cursor:default}
+  .compliance-note{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:14px;padding-top:13px;border-top:1px solid var(--line);font-size:.84rem;color:var(--muted)}
+  .cn-item{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+  .cn-item strong{color:var(--ink);font-weight:600}
+  .cn-dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
   details.method{margin-top:14px;border-top:1px solid var(--line);padding-top:14px}
   details.method summary{cursor:pointer;font-weight:600;font-size:.9rem;color:var(--ink)}
   details.method p,details.method li{color:var(--muted);font-size:.86rem}
   details.method code{background:#f4f6f9;padding:1px 6px;border-radius:5px;font-family:'IBM Plex Mono',monospace;font-size:.82rem}
+  details.method a{color:var(--c0-fg);font-weight:600;text-decoration:none;border-bottom:1px solid rgba(46,125,50,.35)}
+  details.method a:hover{border-bottom-color:var(--c0-fg)}
+
+  /* ---- textbook-style equations (pure CSS, no MathJax dependency) ---- */
+  .eq{
+    display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:3px;
+    font-family:'Cambria','Georgia','Times New Roman',serif;font-size:1.02rem;color:var(--ink);
+    background:#f7f9fc;border:1px solid var(--line);border-radius:10px;
+    padding:16px 18px;margin:12px 0 14px;overflow-x:auto;line-height:1.25;
+  }
+  .eq .v{font-style:italic;white-space:nowrap}        /* variables: italic, as in maths typesetting */
+  .eq .op{font-style:normal;padding:0 7px;white-space:nowrap}
+  .eq sub{font-size:.68em;font-style:normal;line-height:0}
+  .frac{display:inline-flex;flex-direction:column;align-items:center;margin:0 3px;vertical-align:middle}
+  .frac .num{padding:0 10px 4px;white-space:nowrap}
+  .frac .den{padding:4px 10px 0;border-top:1.5px solid currentColor;white-space:nowrap}
+  .eq .eqno{margin-left:auto;padding-left:24px;font-style:normal;font-size:.85rem;color:var(--muted);white-space:nowrap}
+  .where{margin:14px 0 4px;padding:12px 14px;background:#f7f9fc;border:1px solid var(--line);border-radius:10px;font-size:.84rem;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+  .where strong{color:var(--ink);margin-bottom:2px}
+  .where .v{font-family:'Cambria','Georgia',serif;font-style:italic;color:var(--ink)}
+  .where sub{font-size:.7em;font-style:normal}
+  @media(max-width:560px){ .eq{font-size:.9rem;padding:14px 10px;justify-content:flex-start} .eq .eqno{margin-left:8px;padding-left:0} }
 
   footer.ack{text-align:center;color:var(--muted);font-size:.86rem;margin-top:34px;line-height:1.7}
   footer.ack a{color:var(--c0-fg);text-decoration:none;font-weight:500}
@@ -139,6 +175,80 @@
     <p class="lede">Enter the seven quality parameters at a plant's <strong>inlet</strong> (raw sewage) and <strong>outlet</strong> (treated effluent). The tool grades each point on the 0–500 EQI scale and shows how far the water improved through treatment.</p>
   </header>
 
+  <!-- LEGEND + METHOD (top of page: the scale readers need before anything else) -->
+  <section class="card">
+    <h2>EQI scale</h2>
+    <div class="legend" id="legend"></div>
+    <div class="compliance-note">
+      <span class="cn-item"><span class="cn-dot" style="background:var(--c0-bar)"></span><strong>EQI ≤ 50</strong> — meets the <strong>NGT</strong> limit</span>
+      <span class="cn-item"><span class="cn-dot" style="background:var(--c1-bar)"></span><strong>EQI ≤ 100</strong> — meets the <strong>CPCB</strong> limit</span>
+      <span class="cn-item"><span class="cn-dot" style="background:var(--c3-bar)"></span><strong>EQI &gt; 100</strong> — non-compliant</span>
+    </div>
+    <details class="method">
+      <summary>How the score is computed</summary>
+      <p>Each raw reading is placed in its quality band and interpolated into a 0&ndash;500 sub-index. Most KPIs &mdash; and the alkaline side of pH &mdash; use <strong>Equation 3.1</strong>:</p>
+      <div class="eq">
+        <span class="v">SI<sub>I</sub></span><span class="op">=</span>
+        <span class="v">L<sub>I</sub></span><span class="op">+</span>
+        <span class="frac">
+          <span class="num"><span class="op">(</span><span class="v">U<sub>I</sub></span> <span class="op">&minus;</span> <span class="v">L<sub>I</sub></span><span class="op">)</span> <span class="op">&times;</span> <span class="op">(</span><span class="v">C<sub>I</sub></span> <span class="op">&minus;</span> <span class="v">C<sub>L</sub></span><span class="op">)</span></span>
+          <span class="den"><span class="op">(</span><span class="v">C<sub>U</sub></span> <span class="op">&minus;</span> <span class="v">C<sub>L</sub></span><span class="op">)</span></span>
+        </span>
+        <span class="eqno">(3.1)</span>
+      </div>
+      <p><strong>Two cases are handled differently:</strong></p>
+      <ul>
+        <li><strong>pH, acidic range &mdash; Equation 3.2.</strong> pH is the only KPI that can be bad in <em>either</em> direction. Below 7.0, effluent quality worsens as pH <em>falls</em>, so the interpolation runs in reverse &mdash; distance is measured down from the upper (neutral) bound:
+        <div class="eq">
+          <span class="v">SI<sub>I</sub></span><span class="op">=</span>
+          <span class="v">L<sub>I</sub></span><span class="op">+</span>
+          <span class="frac">
+            <span class="num"><span class="op">(</span><span class="v">U<sub>I</sub></span> <span class="op">&minus;</span> <span class="v">L<sub>I</sub></span><span class="op">)</span> <span class="op">&times;</span> <span class="op">(</span><span class="v">C<sub>U</sub></span> <span class="op">&minus;</span> <span class="v">C<sub>I</sub></span><span class="op">)</span></span>
+            <span class="den"><span class="op">(</span><span class="v">C<sub>U</sub></span> <span class="op">&minus;</span> <span class="v">C<sub>L</sub></span><span class="op">)</span></span>
+          </span>
+          <span class="eqno">(3.2)</span>
+        </div>
+        Since pH cannot be &ldquo;removed&rdquo;, its change is reported as a shift toward or away from neutral rather than a removal&nbsp;%.</li>
+        <li><strong>FC &mdash; Equation 3.3.</strong> Faecal coliform in sewage and effluent varies over a large exponential range of multiple orders (the scale runs 1 to 100,000 MPN/100&nbsp;mL), so the SI score for FC is computed on a logarithmic scale:
+        <div class="eq">
+          <span class="v">SI<sub>I</sub></span><span class="op">=</span>
+          <span class="v">L<sub>I</sub></span><span class="op">+</span>
+          <span class="frac">
+            <span class="num"><span class="op">(</span><span class="v">U<sub>I</sub></span> <span class="op">&minus;</span> <span class="v">L<sub>I</sub></span><span class="op">)</span> <span class="op">&times;</span> <span class="op">(</span><span class="op">log</span>&nbsp;<span class="v">C<sub>I</sub></span> <span class="op">&minus;</span> <span class="op">log</span>&nbsp;<span class="v">C<sub>L</sub></span><span class="op">)</span></span>
+            <span class="den"><span class="op">(</span><span class="op">log</span>&nbsp;<span class="v">C<sub>U</sub></span> <span class="op">&minus;</span> <span class="op">log</span>&nbsp;<span class="v">C<sub>L</sub></span><span class="op">)</span></span>
+          </span>
+          <span class="eqno">(3.3)</span>
+        </div>
+        For the same reason, FC <em>reduction</em> is reported as <strong>log removal</strong> rather than a percentage:
+        <div class="eq">
+          <span class="op">log removal</span><span class="op">=</span>
+          <span class="op">log<sub>10</sub></span>
+          <span class="frac">
+            <span class="num"><span class="v">C<sub>inlet</sub></span></span>
+            <span class="den"><span class="v">C<sub>outlet</sub></span></span>
+          </span>
+        </div>
+        A 2&nbsp;log removal means a 100-fold reduction, a 3&nbsp;log removal a 1000-fold one; expressing this as &ldquo;99%&rdquo; versus &ldquo;99.9%&rdquo; would obscure a full order of magnitude.</li>
+      </ul>
+      <div class="where">
+        <strong>Where:</strong>
+        <span><span class="v">SI<sub>I</sub></span> &mdash; sub-index score of a KPI</span>
+        <span><span class="v">C<sub>I</sub></span> &mdash; concentration of the KPI</span>
+        <span><span class="v">C<sub>L</sub></span>, <span class="v">C<sub>U</sub></span> &mdash; lower and upper bounds of the KPI concentration range</span>
+        <span><span class="v">L<sub>I</sub></span>, <span class="v">U<sub>I</sub></span> &mdash; lower and upper score bounds of the category <span class="v">C<sub>I</sub></span> fell in</span>
+      </div>
+      <p><strong>Combining the seven sub-indices:</strong></p>
+      <ul>
+        <li>Bands and limits are taken from the reference table derived from the norms of the
+        <a href="https://cpcb.nic.in/" target="_blank" rel="noopener">Central Pollution Control Board (CPCB)</a> and the
+        <a href="https://www.greentribunal.gov.in/" target="_blank" rel="noopener">National Green Tribunal (NGT)</a>.</li>
+        <li>A parameter <strong>complies</strong> when its sub-index is ≤ 100, i.e. it is within the <strong>CPCB</strong> limit. A sub-index of ≤ 50 means it also meets the stricter <strong>NGT</strong> limit. Anything above 100 (Moderate or worse) is <strong>non-compliant</strong>.</li>
+        <li>If <strong>every parameter complies</strong>, the overall EQI is the <strong>maximum</strong> of the seven sub-indices — the plant is graded on its worst-performing parameter.</li>
+        <li>If <strong>any parameter fails</strong>, the overall EQI is the <strong>weighted mean of the non-compliant parameters only</strong> — so a serious breach cannot be diluted by good numbers elsewhere.</li>
+      </ul>
+    </details>
+  </section>
+
   <!-- INPUT -->
   <section class="card">
     <h2>Sample readings</h2>
@@ -149,6 +259,7 @@
           <th>Unit</th>
           <th class="inlet">Inlet (raw)</th>
           <th class="outlet">Outlet (treated)</th>
+          <th>Category</th>
         </tr>
       </thead>
       <tbody id="inputRows"><!-- filled by JS --></tbody>
@@ -163,27 +274,27 @@
   <!-- JOURNEY (signature) -->
   <section class="card">
     <h2>Treatment result</h2>
-    <p class="hint">Lower EQI is better. A working plant should pull the water from a high (red) inlet score down to a low (green) outlet score.</p>
+    <p class="hint">Lower EQI is better. An operational treatment plant should receive the water with a high EQI in the red zone and bring it down to a low EQI in the green zone.</p>
     <div class="journey">
       <div class="stage" id="stageIn">
         <div class="role">Inlet · raw sewage</div>
-        <div class="big num" id="inScore">—</div>
-        <div class="catname" id="inCat">—</div>
+        <div class="scoreline"><span class="big num" id="inScore">—</span><span class="drivers" id="inDrivers"></span></div>
+        <div class="catline"><span class="catname" id="inCat">—</span> <span class="complytag" id="inComply"></span></div>
         <div class="scaleout">on the 0–500 EQI scale</div>
         <div class="gaugebar"><span id="inGauge" style="width:0%"></span></div>
       </div>
 
       <div class="flow">
         <div class="delta num" id="deltaVal">—</div>
-        <div class="deltalabel">EQI improvement</div>
+        <div class="deltalabel" id="deltaLabel">EQI improvement</div>
         <div class="arrow" id="arrowBox"></div>
         <div class="transition" id="transition">enter readings to begin</div>
       </div>
 
       <div class="stage" id="stageOut">
         <div class="role">Outlet · to drain</div>
-        <div class="big num" id="outScore">—</div>
-        <div class="catname" id="outCat">—</div>
+        <div class="scoreline"><span class="big num" id="outScore">—</span><span class="drivers" id="outDrivers"></span></div>
+        <div class="catline"><span class="catname" id="outCat">—</span> <span class="complytag" id="outComply"></span></div>
         <div class="scaleout">on the 0–500 EQI scale</div>
         <div class="gaugebar"><span id="outGauge" style="width:0%"></span></div>
       </div>
@@ -194,7 +305,7 @@
   <!-- PER PARAMETER -->
   <section class="card">
     <h2>Change in each parameter</h2>
-    <p class="hint">Sub-index chips are coloured by quality band. Removal % is how much of the pollutant the plant took out; pH is shown as a shift toward neutral.</p>
+    <p class="hint">Sub-index chips are coloured by quality band. Removal is shown as a % for most pollutants, as <strong>log removal</strong> for FC, and as a shift toward neutral for pH.</p>
     <div class="tscroll">
     <table class="pp">
       <thead>
@@ -221,33 +332,10 @@
         <div class="chartbox"><canvas id="subChart"></canvas></div>
       </div>
       <div>
-        <p class="hint">Pollutant removal efficiency (%)</p>
+        <p class="hint">Pollutant removal efficiency (%) — FC is excluded, as it is reported as log removal</p>
         <div class="chartbox"><canvas id="remChart"></canvas></div>
       </div>
     </div>
-  </section>
-
-  <!-- LEGEND + METHOD -->
-  <section class="card">
-    <h2>EQI scale</h2>
-    <div class="legend" id="legend"></div>
-    <details class="method">
-      <summary>How the score is computed</summary>
-      <p>Most raw readings are placed in their quality band and <strong>linearly interpolated</strong> into a 0–500 sub-index:
-      <br><code>index = index_low + (reading − limit_low) / (limit_high − limit_low) × (index_high − index_low)</code></p>
-      <p><strong>Two parameters are handled differently:</strong></p>
-      <ul>
-        <li><strong>FC — logarithmic.</strong> Faecal coliform in sewage and effluent varies across several orders of magnitude (the scale runs 1 to 100,000 MPN/100 mL), so a linear fit inside a band would distort the score. FC is interpolated in log space instead:
-        <br><code>index = index_low + (index_high − index_low) × (log C − log C_low) / (log C_high − log C_low)</code></li>
-        <li><strong>pH — two-sided.</strong> pH is the only parameter where a reading can be bad in <em>either</em> direction. Readings at or above 7.0 are graded on the alkaline bands; readings below 7.0 are graded on the acidic bands, where the interpolation runs in reverse because a <em>lower</em> pH is worse. Since pH cannot be "removed", its change is reported as a shift toward or away from neutral rather than a removal %.</li>
-      </ul>
-      <p><strong>Combining the seven sub-indices:</strong></p>
-      <ul>
-        <li>Bands and limits are taken directly from the NGT / CPCB reference table.</li>
-        <li>A parameter <strong>complies</strong> when its sub-index is ≤ 100 (Good or Satisfactory).</li>
-        <li>If every parameter complies, the overall EQI is the equal-weighted mean of all seven. If any parameter fails, the EQI is the mean of <em>only the failing</em> parameters — so a single serious breach cannot be hidden by good numbers elsewhere.</li>
-      </ul>
-    </details>
   </section>
 
   <footer class="ack">
@@ -266,8 +354,11 @@
 const EQI = [[0,50],[51,100],[101,200],[201,300],[301,400],[401,500]];
 const CATS = [
   {n:'Good',        i:0}, {n:'Satisfactory', i:1}, {n:'Moderate', i:2},
-  {n:'Poor',        i:3}, {n:'Very Poor',    i:4}, {n:'Severe',   i:5}
+  {n:'Poor',        i:3}, {n:'Very Poor',    i:4}, {n:'Severe',   i:5},
+  {n:'Severe+',     i:6}                              // >500: beyond the top scoring band
 ];
+// Label shown on the legend for each category
+const CATRANGE = ['0–50','51–100','101–200','201–300','301–400','401–500','>500'];
 const COLOR = i => ({
   fg:getComputedStyle(document.documentElement).getPropertyValue(`--c${i}-fg`).trim(),
   bg:getComputedStyle(document.documentElement).getPropertyValue(`--c${i}-bg`).trim(),
@@ -329,17 +420,20 @@ function subIndex(key, raw){
   return Math.round(s);
 }
 function catOf(score){
+  if(score > 500) return 6;                     // Severe+ — beyond the top scoring band
   for(let i=0;i<6;i++){ if(score<=EQI[i][1]) return i; }
   return 5;
 }
-// overall EQI with the sheet's compliance-aware weighting
+// Overall EQI:
+//   • all parameters comply  -> the MAXIMUM sub-index (the plant is only as good as its worst parameter)
+//   • any parameter fails    -> weighted mean of the NON-COMPLIANT parameters only (equal weights),
+//                               so a serious breach cannot be diluted by good numbers elsewhere
 function overallEQI(scores){                     // scores: {key:index}
   const vals = PARAMS.map(p=>scores[p.key]).filter(v=>v!==null);
   if(vals.length===0) return null;
   const fails = vals.filter(v=>v>100);
-  const pool  = fails.length ? fails : vals;     // any breach → grade on the breaches only
-  const mean  = pool.reduce((a,b)=>a+b,0)/pool.length;
-  return Math.round(mean);
+  if(fails.length===0) return Math.round(Math.max(...vals));           // all comply -> max
+  return Math.round(fails.reduce((a,b)=>a+b,0)/fails.length);          // else -> weighted mean of failures
 }
 
 /* ============================================================
@@ -372,8 +466,19 @@ function buildInputs(){
       <td class="punit">${p.unit}</td>
       <td class="in-inlet"><input type="number" step="any" inputmode="decimal" data-side="inlet" data-key="${p.key}" placeholder="—"></td>
       <td class="in-outlet"><input type="number" step="any" inputmode="decimal" data-side="outlet" data-key="${p.key}" placeholder="—"></td>
+      <td class="catcell" data-cat="${p.key}"><span class="catnone">—</span></td>
     </tr>`).join('');
   tb.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',recompute));
+}
+
+// The outlet sub-index decides which quality band the treated effluent lands in for that parameter.
+function renderCategoryCells(outS){
+  document.querySelectorAll('.catcell').forEach(td=>{
+    const s = outS[td.dataset.cat];
+    if(s===null || s===undefined){ td.innerHTML='<span class="catnone">—</span>'; return; }
+    const ci=catOf(s), c=COLOR(ci);
+    td.innerHTML=`<span class="catchip" style="background:${c.bg};color:${c.fg};border-color:${c.bar}">${CATS[ci].n}</span>`;
+  });
 }
 function readSide(side){
   const o={};
@@ -392,16 +497,46 @@ function applyPreset(name){
   recompute();
 }
 
-function paintStage(stageEl,scoreEl,catEl,gaugeEl,eqi){
+// Compliance statement for each band — Good meets both standards, Satisfactory meets only CPCB,
+// everything from Moderate upward is non-compliant.
+const COMPLY = [
+  'Complies with NGT and CPCB standards',
+  'Complies with CPCB standards but not NGT standards',
+  'Non compliant','Non compliant','Non compliant','Non compliant','Non compliant'
+];
+
+// The parameters responsible for a non-compliant EQI, in DECREASING order of sub-index.
+// These are exactly the parameters that entered the weighted mean, so the bracketed list
+// explains where the reported number came from — e.g. "286 (FC, TP)".
+function driversOf(scores){
+  return PARAMS
+    .filter(p => scores[p.key] !== null && scores[p.key] > 100)
+    .sort((a,b) => scores[b.key] - scores[a.key])
+    .map(p => p.label);
+}
+
+function paintStage(stageEl,scoreEl,catEl,gaugeEl,eqi,complyEl,driversEl,scores){
   if(eqi===null){
     scoreEl.textContent='—'; catEl.textContent='—';
+    if(complyEl) complyEl.textContent='';
+    if(driversEl) driversEl.textContent='';
     stageEl.style.background='#f7f9fc'; stageEl.style.color='var(--ink)';
+    stageEl.style.borderColor='var(--line)';
     gaugeEl.style.width='0%'; return null;
   }
   const ci=catOf(eqi), c=COLOR(ci);
-  scoreEl.textContent=eqi;
+  // Beyond the top of the 0–500 scale the exact figure is not meaningful, so it is reported as 500+
+  scoreEl.textContent = eqi > 500 ? '500+' : eqi;
   catEl.textContent=CATS[ci].n;
-  stageEl.style.background=c.bg; stageEl.style.color=c.fg;
+  if(complyEl) complyEl.textContent='('+COMPLY[ci]+')';
+  if(driversEl){
+    const d = scores ? driversOf(scores) : [];
+    driversEl.textContent = d.length ? '(' + d.join(', ') + ')' : '';
+  }
+  // The box carries its category's colour: tinted fill, saturated border, matching text.
+  stageEl.style.background=c.bg;
+  stageEl.style.color=c.fg;
+  stageEl.style.borderColor=c.bar;
   gaugeEl.style.width=Math.min(100,eqi/500*100)+'%';
   gaugeEl.style.background=c.bar;
   return ci;
@@ -413,38 +548,47 @@ function recompute(){
   PARAMS.forEach(p=>{ inS[p.key]=subIndex(p.key,inRaw[p.key]); outS[p.key]=subIndex(p.key,outRaw[p.key]); });
   const inEQI=overallEQI(inS), outEQI=overallEQI(outS);
 
-  const inCi = paintStage($('stageIn'),$('inScore'),$('inCat'),$('inGauge'),inEQI);
-  const outCi= paintStage($('stageOut'),$('outScore'),$('outCat'),$('outGauge'),outEQI);
+  const inCi = paintStage($('stageIn'),$('inScore'),$('inCat'),$('inGauge'),inEQI,$('inComply'),$('inDrivers'),inS);
+  const outCi= paintStage($('stageOut'),$('outScore'),$('outCat'),$('outGauge'),outEQI,$('outComply'),$('outDrivers'),outS);
 
   // delta + arrow + verdict
   const flowArrow=$('arrowBox'), verdict=$('verdict');
   if(inEQI!==null && outEQI!==null){
-    const d=inEQI-outEQI;                       // + = improvement
-    const good = d>=0;
-    const col = good ? COLOR(0).bar : COLOR(5).bar;
-    $('deltaVal').textContent=(d>=0?'−':'+')+Math.abs(d);
+    const d=inEQI-outEQI;                       // + = EQI fell = improvement
+    const col = d>0 ? COLOR(0).bar : (d<0 ? COLOR(5).bar : 'var(--muted)');
+    // Arrows follow the same convention as the per-parameter rows:
+    // ↓ = the index came down (good, green); ↑ = the index went up (bad, red).
+    const arrow = d>0 ? '↓ ' : (d<0 ? '↑ ' : '');
+    $('deltaVal').textContent = arrow + Math.abs(d);
     $('deltaVal').style.color=col;
+    $('deltaLabel').textContent = d>0 ? 'EQI improvement' : (d<0 ? 'EQI deterioration' : 'no change in EQI');
     $('transition').innerHTML=`${CATS[inCi].n} <span style="opacity:.5">→</span> ${CATS[outCi].n}`;
-    flowArrow.innerHTML=arrowSVG(col);
+    flowArrow.innerHTML=arrowSVG(d>=0 ? COLOR(0).bar : COLOR(5).bar);
+    const good = d>=0;
     const pct = inEQI>0 ? Math.round(d/inEQI*100) : 0;
     verdict.style.display='flex';
-    if(good && outCi<=1){
+    if(d===0){
+      verdict.style.background=COLOR(outCi<=1?0:2).bg; verdict.style.color=COLOR(outCi<=1?0:2).fg;
+      verdict.innerHTML=`− &nbsp;The EQI is <strong>unchanged</strong> across the plant.`;
+    } else if(good && outCi<=1){
       verdict.style.background=COLOR(0).bg; verdict.style.color=COLOR(0).fg;
-      verdict.innerHTML=`✓ &nbsp;Treatment improved the EQI by <strong>${d} points (${pct}%)</strong>. The effluent leaves as <strong>${CATS[outCi].n}</strong> — within standard.`;
+      verdict.innerHTML=`✓ &nbsp;Treatment improved the EQI by <strong>${d} points (${pct}%)</strong>.`;
     } else if(good){
       verdict.style.background=COLOR(2).bg; verdict.style.color=COLOR(2).fg;
-      verdict.innerHTML=`△ &nbsp;EQI improved by <strong>${d} points (${pct}%)</strong>, but the outlet is still <strong>${CATS[outCi].n}</strong> — not yet compliant. Check the flagged parameters below.`;
+      verdict.innerHTML=`△ &nbsp;EQI improved by <strong>${d} points (${pct}%)</strong>, but the outlet is still <strong>non-compliant</strong>. Check the flagged parameters below.`;
     } else {
       verdict.style.background=COLOR(5).bg; verdict.style.color=COLOR(5).fg;
-      verdict.innerHTML=`✕ &nbsp;The outlet EQI is <strong>worse</strong> than the inlet. Re-check sampling or plant operation.`;
+      verdict.innerHTML=`✕ &nbsp;The outlet EQI is <strong>${Math.abs(d)} points worse</strong> than the inlet — the water leaves dirtier than it arrived. Re-check sampling or plant operation.`;
     }
   } else {
     $('deltaVal').textContent='—'; $('deltaVal').style.color='var(--muted)';
+    $('deltaLabel').textContent='EQI improvement';
     $('transition').textContent='enter both inlet and outlet readings';
     flowArrow.innerHTML=arrowSVG('#c7d0da');
     verdict.style.display='none';
   }
 
+  renderCategoryCells(outS);
   renderParamTable(inRaw,outRaw,inS,outS);
   renderCharts(inS,outS,inRaw,outRaw);
 }
@@ -467,16 +611,19 @@ function renderParamTable(inRaw,outRaw,inS,outS){
     const iv=inRaw[p.key], ov=outRaw[p.key];
     let rem='<span class="rem flat">—</span>';
     if(iv!=null && ov!=null){
-      if(p.conc && iv>0){
+      if(p.key==='FC' && iv!=null && ov!=null && iv>0){
+        // FC reduction is conventionally reported as LOG removal: log10(inlet / outlet).
+        // A percentage is useless here — 99% and 99.9% are a full order of magnitude apart
+        // but both round to "100%".
+        const o = Math.max(ov, 1);                       // guard log10(0)
+        const lr = Math.log10(iv / o);
+        // colour by where the OUTLET lands, not merely by how far it fell
+        const cls = ov < 100 ? 'up' : (ov <= 230 ? 'warn' : 'down');
+        const arrow = lr > 0.005 ? '↓ ' : (lr < -0.005 ? '↑ ' : '');
+        rem=`<span class="rem ${cls}">${arrow}${Math.abs(lr).toFixed(2)} log</span>`;
+      } else if(p.conc && iv>0){
         const r=Math.round((iv-ov)/iv*100);
-        let cls;
-        if(p.key==='FC'){
-          // FC is graded on where the OUTLET lands, not merely on whether it fell:
-          // < 100 = Good (green), 100–230 = Satisfactory (amber), > 230 = non-compliant (red)
-          cls = ov < 100 ? 'up' : (ov <= 230 ? 'warn' : 'down');
-        } else {
-          cls = r>0?'up':(r<0?'down':'flat');
-        }
+        const cls = r>0?'up':(r<0?'down':'flat');
         rem=`<span class="rem ${cls}">${r>0?'↓ ':(r<0?'↑ ':'')}${Math.abs(r)}%</span>`;
       } else if(!p.conc){
         const shift = ov - iv;                       // + = pH rose, − = pH fell
@@ -499,12 +646,17 @@ function renderParamTable(inRaw,outRaw,inS,outS){
 }
 
 function renderCharts(inS,outS,inRaw,outRaw){
+  // Chart.js is loaded from a CDN. If it is blocked or slow, the calculator itself must still work —
+  // the tables and scores are the primary output; the charts are supporting detail.
+  if(typeof Chart === 'undefined') return;
   const labels=PARAMS.map(p=>p.label);
   const inData=PARAMS.map(p=>inS[p.key]??0);
   const outData=PARAMS.map(p=>outS[p.key]??0);
-  const remData=PARAMS.map(p=>{
+  // FC is excluded from the % chart — its reduction is reported as log removal, not a percentage
+  const PCT = PARAMS.filter(p=>p.conc && p.key!=='FC');
+  const remData=PCT.map(p=>{
     const iv=inRaw[p.key],ov=outRaw[p.key];
-    if(p.conc && iv!=null && ov!=null && iv>0) return Math.max(0,Math.round((iv-ov)/iv*100));
+    if(iv!=null && ov!=null && iv>0) return Math.max(0,Math.round((iv-ov)/iv*100));
     return null;
   });
   const cIn=COLOR(5).bar, cOut=COLOR(0).bar;
@@ -527,24 +679,25 @@ function renderCharts(inS,outS,inRaw,outRaw){
 
   if(!remChart){
     remChart=new Chart($('remChart'),{type:'bar',
-      data:{labels:PARAMS.filter(p=>p.conc).map(p=>p.label),
-            datasets:[{label:'Removal %',data:remData.filter((_,i)=>PARAMS[i].conc),
-              backgroundColor:PARAMS.filter(p=>p.conc).map(()=>COLOR(1).bar),borderRadius:5}]},
+      data:{labels:PCT.map(p=>p.label),
+            datasets:[{label:'Removal %',data:remData,
+              backgroundColor:PCT.map(()=>COLOR(1).bar),borderRadius:5}]},
       options:{...baseOpts,plugins:{legend:{display:false}},
         scales:{...baseOpts.scales,y:{...baseOpts.scales.y,max:100,title:{display:true,text:'% removed',font:{family:'Inter',size:11}}}}}
     });
   } else {
-    remChart.data.datasets[0].data=remData.filter((_,i)=>PARAMS[i].conc); remChart.update();
+    remChart.data.datasets[0].data=remData; remChart.update();
   }
 }
 
 function buildLegend(){
+  const STD = ['NGT','CPCB','','','','',''];        // Good = NGT limit, Satisfactory = CPCB limit
   $('legend').innerHTML=CATS.map(c=>{
     const col=COLOR(c.i);
-    const [lo,hi]=EQI[c.i];
+    const std = STD[c.i] ? ` <span style="opacity:.7;font-weight:500">· ${STD[c.i]}</span>` : '';
     return `<span class="chip" style="background:${col.bg};color:${col.fg}">
       <span style="width:9px;height:9px;border-radius:50%;background:${col.bar};display:inline-block"></span>
-      ${c.n} · ${lo}–${hi}</span>`;
+      ${c.n} · ${CATRANGE[c.i]}${std}</span>`;
   }).join('');
 }
 
