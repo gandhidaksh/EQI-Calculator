@@ -20,61 +20,75 @@ Parameters: **BOD, COD, TSS, TN, TP, FC, pH**
 
 ## EQI scale
 
-| Score | Category | Basis |
+| Score range | Category | Compliance |
 |---|---|---|
-| 0–50 | Good | meets NGT norms |
-| 51–100 | Satisfactory | meets CPCB norms |
-| 101–200 | Moderate | |
-| 201–300 | Poor | |
-| 301–400 | Very Poor | |
-| 401–500 | Severe | |
+| 0–50 | Good | Linked to [NGT standards for sewage discharge](https://images.assettype.com/barandbench/import/2019/01/NS-Deshpande-v-UOI-NGT-order-Dec-21-2018.pdf) |
+| 51–100 | Satisfactory | Linked to [CPCB standards](https://cpcb.nic.in/GeneralStandards.pdf) |
+| 101–200 | Moderate | Non compliant with discharge standards |
+| 201–300 | Poor | Non compliant with discharge standards |
+| 301–400 | Very Poor | Non compliant with discharge standards |
+| 401–500 | Severe | Non compliant with discharge standards |
+| >500 | Severe+ | Non compliant with discharge standards |
 
 Lower is better. A parameter **complies** when its sub-index is ≤ 100.
 
 ## How the score is computed
 
-Most parameters are placed in their quality band and **linearly interpolated**:
+Each raw reading is placed in its quality band and interpolated into a 0–500 sub-index.
+Most KPIs — and the alkaline side of pH — use **Equation 3.1**:
 
 ```
-index = index_low + (reading − limit_low) / (limit_high − limit_low) × (index_high − index_low)
+SI_I = L_I + (U_I − L_I) × (C_I − C_L) / (C_U − C_L)
 ```
 
-**Two parameters are handled differently:**
+**Two cases are handled differently:**
 
-- **FC — logarithmic.** Faecal coliform spans 1 to 100,000 MPN/100 mL, so a linear fit inside
-  a band distorts the score. FC is interpolated in log space:
+- **pH, acidic range — Equation 3.2.** pH is the only KPI that can be bad in either direction.
+  Below 7.0, quality worsens as pH *falls*, so interpolation runs in reverse — distance is
+  measured down from the upper (neutral) bound:
   ```
-  index = index_low + (index_high − index_low) × (log C − log C_low) / (log C_high − log C_low)
+  SI_I = L_I + (U_I − L_I) × (C_U − C_I) / (C_U − C_L)
+  ```
+  pH change is reported as a shift toward neutral, not a removal %.
+
+- **FC — Equation 3.3 above the Good band.** Within the **Good** band (1–100 MPN/100 mL), FC uses
+  the same linear formula as every other parameter (Eq 3.1). Above that, faecal coliform varies
+  over a large exponential range of multiple orders, so each concentration term is
+  **log-transformed** before interpolating:
+  ```
+  SI_I = L_I + (U_I − L_I) × (log C_I − log C_L) / (log C_U − log C_L)
   ```
   For the same reason FC *reduction* is reported as **log removal** — log₁₀(inlet ÷ outlet) —
   not a percentage. 2 log = a 100-fold reduction; 3 log = 1000-fold. Reporting "99%" vs "99.9%"
   would hide a full order of magnitude.
-- **pH — two-sided.** pH can be bad in either direction. Readings ≥ 7.0 are graded on the
-  alkaline bands; readings < 7.0 on the acidic bands, where interpolation runs in reverse
-  (a lower pH is worse). pH change is reported as a shift toward neutral, not a removal %.
 
-**Compliance:** a parameter complies when its sub-index is **≤ 100** — within the **CPCB** limit.
-A sub-index **≤ 50** also meets the stricter **NGT** limit. Above 100 is non-compliant.
-
-Bands and limits derive from the norms of the [Central Pollution Control Board (CPCB)](https://cpcb.nic.in/)
-and the [National Green Tribunal (NGT)](https://www.greentribunal.gov.in/).
+Where: `SI_I` = sub-index score of a KPI · `C_I` = concentration of the KPI ·
+`C_L`, `C_U` = lower and upper bounds of the KPI concentration range ·
+`L_I`, `U_I` = lower and upper score bounds of the category `C_I` fell in.
 
 **Combining the sub-indices:**
 
 - If **every parameter complies**, the overall EQI is the **maximum** of the seven sub-indices —
   the plant is graded on its worst-performing parameter.
 - If **any parameter fails**, the overall EQI is the **weighted mean of the non-compliant
-  parameters only** — so a serious breach cannot be diluted by good numbers elsewhere.
+  parameters only** — so a serious breach cannot be diluted by good numbers elsewhere. The
+  failing parameters are listed in brackets after the score, in decreasing order of sub-index —
+  e.g. `363 (TP, TSS)` — so the reported figure always shows where it came from.
 
 ## Validation
 
 The engine reproduces the reference Excel exactly. Clicking **Load Excel reference** loads the
-source sample (BOD 25, COD 224, TSS 459, TN 17, TP 7, FC 70, pH 7.75), which yields
-**EQI 363 — Very Poor**, matching the reference sheet's `EQI_wmean`.
+source sample and yields **EQI 363 — Very Poor**, matching the reference sheet's `EQI_wmean`.
 
-> Note: the reference Excel computes FC linearly (70 → 35). This calculator follows the thesis
-> equation and computes FC logarithmically (70 → 46). This does not affect the 363 result,
-> because FC complies in that sample and does not enter the failing-parameter mean.
+| Parameter | Reading | Sub-index | Sheet |
+|---|---|---|---|
+| BOD | 25 mg/L | 87 | 87 |
+| COD | 224 mg/L | 94 | 94 |
+| TSS | 459 mg/L | 344 | 344 |
+| TN | 17 mg/L | 85 | 85 |
+| TP | 7 mg/L | 382 | 382 |
+| FC | 70 MPN/100mL | 35 | 35 |
+| pH | 7.75 | 66 | 66 |
 
 ## Running it
 
@@ -92,6 +106,13 @@ goes live automatically within a minute.
 
 Built as a calculator, structured to extend into a dashboard once year-wise geospatial STP data
 is available — the same static approach can carry map and time-series views without a backend.
+
+## References
+
+- MoEFCC (1986). *The Environment (Protection) Rules, 1986 — Schedule VI: General Standards for
+  Discharge of Environmental Pollutants (Effluents).* https://cpcb.nic.in/GeneralStandards.pdf
+- *Nitin Shankar Deshpande v. Union of India & Others* (2018). NGT order, 21 December 2018.
+  https://images.assettype.com/barandbench/import/2019/01/NS-Deshpande-v-UOI-NGT-order-Dec-21-2018.pdf
 
 ## Credits
 

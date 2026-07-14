@@ -24,10 +24,12 @@
     --c6-fg:#4a0072; --c6-bg:#e6d4ee; --c6-bar:#6a1b9a;   /* Severe+  >500 */
   }
   *{box-sizing:border-box}
+  html{overflow-x:hidden}
   body{
     font-family:'Inter',system-ui,'Segoe UI',sans-serif;
     margin:0;background:var(--bg);color:var(--ink);
     -webkit-font-smoothing:antialiased;line-height:1.5;
+    overflow-x:hidden;   /* wide tables and equations scroll inside their own boxes, not the page */
   }
   .num{font-family:'IBM Plex Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
   .wrap{max-width:1080px;margin:0 auto;padding:28px 20px 60px}
@@ -104,12 +106,15 @@
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
 
   /* ---- legend ---- */
-  .legend{display:flex;flex-wrap:wrap;gap:8px}
-  .legend .chip{cursor:default}
-  .compliance-note{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:14px;padding-top:13px;border-top:1px solid var(--line);font-size:.84rem;color:var(--muted)}
-  .cn-item{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
-  .cn-item strong{color:var(--ink);font-weight:600}
-  .cn-dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+  /* ---- EQI scale table ---- */
+  table.scale{width:100%;border-collapse:collapse;font-size:.87rem;min-width:420px}
+  table.scale th,table.scale td{padding:9px 12px;text-align:left;vertical-align:middle}
+  table.scale thead th{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);border-bottom:1px solid var(--line);font-weight:600}
+  table.scale tbody tr+tr td{border-top:1px solid #eef1f5}
+  table.scale td.rng{font-family:'IBM Plex Mono',monospace;font-weight:600;white-space:nowrap;width:1%}
+  table.scale td.compcell{color:var(--muted)}
+  table.scale a{color:var(--c0-fg);font-weight:600;text-decoration:none;border-bottom:1px solid rgba(46,125,50,.35)}
+  table.scale a:hover{border-bottom-color:var(--c0-fg)}
   details.method{margin-top:14px;border-top:1px solid var(--line);padding-top:14px}
   details.method summary{cursor:pointer;font-weight:600;font-size:.9rem;color:var(--ink)}
   details.method p,details.method li{color:var(--muted);font-size:.86rem}
@@ -119,10 +124,11 @@
 
   /* ---- textbook-style equations (pure CSS, no MathJax dependency) ---- */
   .eq{
-    display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:3px;
+    display:flex;align-items:center;justify-content:center;flex-wrap:nowrap;gap:3px;
     font-family:'Cambria','Georgia','Times New Roman',serif;font-size:1.02rem;color:var(--ink);
     background:#f7f9fc;border:1px solid var(--line);border-radius:10px;
-    padding:16px 18px;margin:12px 0 14px;overflow-x:auto;line-height:1.25;
+    padding:16px 18px;margin:12px 0 14px;line-height:1.25;
+    overflow-x:auto;max-width:100%;min-width:0;
   }
   .eq .v{font-style:italic;white-space:nowrap}        /* variables: italic, as in maths typesetting */
   .eq .op{font-style:normal;padding:0 7px;white-space:nowrap}
@@ -130,12 +136,17 @@
   .frac{display:inline-flex;flex-direction:column;align-items:center;margin:0 3px;vertical-align:middle}
   .frac .num{padding:0 10px 4px;white-space:nowrap}
   .frac .den{padding:4px 10px 0;border-top:1.5px solid currentColor;white-space:nowrap}
-  .eq .eqno{margin-left:auto;padding-left:24px;font-style:normal;font-size:.85rem;color:var(--muted);white-space:nowrap}
+  .eq .eqno{margin-left:26px;font-style:normal;font-size:.85rem;color:var(--muted);white-space:nowrap;flex:0 0 auto}
   .where{margin:14px 0 4px;padding:12px 14px;background:#f7f9fc;border:1px solid var(--line);border-radius:10px;font-size:.84rem;color:var(--muted);display:flex;flex-direction:column;gap:4px}
   .where strong{color:var(--ink);margin-bottom:2px}
   .where .v{font-family:'Cambria','Georgia',serif;font-style:italic;color:var(--ink)}
   .where sub{font-size:.7em;font-style:normal}
-  @media(max-width:560px){ .eq{font-size:.9rem;padding:14px 10px;justify-content:flex-start} .eq .eqno{margin-left:8px;padding-left:0} }
+  @media(max-width:560px){
+    .eq{font-size:.88rem;padding:14px 10px;justify-content:flex-start}
+    .eq .eqno{margin-left:8px;padding-left:0}
+    details.method ul{padding-left:18px}
+    details.method li{overflow-x:hidden}
+  }
 
   footer.ack{text-align:center;color:var(--muted);font-size:.86rem;margin-top:34px;line-height:1.7}
   footer.ack a{color:var(--c0-fg);text-decoration:none;font-weight:500}
@@ -178,11 +189,13 @@
   <!-- LEGEND + METHOD (top of page: the scale readers need before anything else) -->
   <section class="card">
     <h2>EQI scale</h2>
-    <div class="legend" id="legend"></div>
-    <div class="compliance-note">
-      <span class="cn-item"><span class="cn-dot" style="background:var(--c0-bar)"></span><strong>EQI ≤ 50</strong> — meets the <strong>NGT</strong> limit</span>
-      <span class="cn-item"><span class="cn-dot" style="background:var(--c1-bar)"></span><strong>EQI ≤ 100</strong> — meets the <strong>CPCB</strong> limit</span>
-      <span class="cn-item"><span class="cn-dot" style="background:var(--c3-bar)"></span><strong>EQI &gt; 100</strong> — non-compliant</span>
+    <div class="tscroll">
+      <table class="scale">
+        <thead>
+          <tr><th>Score range</th><th>Category</th><th>Compliance</th></tr>
+        </thead>
+        <tbody id="scaleRows"></tbody>
+      </table>
     </div>
     <details class="method">
       <summary>How the score is computed</summary>
@@ -209,7 +222,7 @@
           <span class="eqno">(3.2)</span>
         </div>
         Since pH cannot be &ldquo;removed&rdquo;, its change is reported as a shift toward or away from neutral rather than a removal&nbsp;%.</li>
-        <li><strong>FC &mdash; Equation 3.3.</strong> Faecal coliform in sewage and effluent varies over a large exponential range of multiple orders (the scale runs 1 to 100,000 MPN/100&nbsp;mL), so the SI score for FC is computed on a logarithmic scale:
+        <li><strong>FC &mdash; Equation 3.3 above the Good band.</strong> Within the <strong>Good</strong> band (1&ndash;100 MPN/100&nbsp;mL), FC uses the same linear formula as every other parameter (Eq&nbsp;3.1). Above that, faecal coliform varies over a large exponential range of multiple orders, so each concentration term is <strong>log-transformed</strong> before interpolating:
         <div class="eq">
           <span class="v">SI<sub>I</sub></span><span class="op">=</span>
           <span class="v">L<sub>I</sub></span><span class="op">+</span>
@@ -239,9 +252,7 @@
       </div>
       <p><strong>Combining the seven sub-indices:</strong></p>
       <ul>
-        <li>Bands and limits are taken from the reference table derived from the norms of the
-        <a href="https://cpcb.nic.in/" target="_blank" rel="noopener">Central Pollution Control Board (CPCB)</a> and the
-        <a href="https://www.greentribunal.gov.in/" target="_blank" rel="noopener">National Green Tribunal (NGT)</a>.</li>
+        <li>Bands and limits derive from the <a href="https://cpcb.nic.in/GeneralStandards.pdf" target="_blank" rel="noopener">Environment (Protection) Rules, 1986 — Schedule VI</a> (MoEFCC, general standards for discharge of effluents) and the <a href="https://images.assettype.com/barandbench/import/2019/01/NS-Deshpande-v-UOI-NGT-order-Dec-21-2018.pdf" target="_blank" rel="noopener">NGT order in <em>Nitin Shankar Deshpande v. Union of India</em> (2018)</a>.</li>
         <li>A parameter <strong>complies</strong> when its sub-index is ≤ 100, i.e. it is within the <strong>CPCB</strong> limit. A sub-index of ≤ 50 means it also meets the stricter <strong>NGT</strong> limit. Anything above 100 (Moderate or worse) is <strong>non-compliant</strong>.</li>
         <li>If <strong>every parameter complies</strong>, the overall EQI is the <strong>maximum</strong> of the seven sub-indices — the plant is graded on its worst-performing parameter.</li>
         <li>If <strong>any parameter fails</strong>, the overall EQI is the <strong>weighted mean of the non-compliant parameters only</strong> — so a serious breach cannot be diluted by good numbers elsewhere.</li>
@@ -394,14 +405,16 @@ function scoreAscending(raw, bands){
   const [eLo,eHi]=EQI[b], [lo,hi]=bands[b];
   return eLo + (raw-lo)/(hi-lo)*(eHi-eLo);
 }
-// FC spans 1 -> 100,000 (five orders of magnitude), so it is interpolated in LOG space.
-// Thesis Eq. 3.3:  SI = L_low + (I_high - I_low) * (log C - log C_low) / (log C_high - log C_low)
-function scoreLog(raw, bands){
-  const r = Math.max(raw, 1);                  // log(0) is undefined; FC scale starts at 1
+// FC is HYBRID. Within the Good band (1–100 MPN/100 mL) it uses the same linear formula as every
+// other parameter (Eq 3.1). Above that, FC spans several orders of magnitude, so each concentration
+// term is log-transformed before interpolating (Eq 3.3).
+function scoreFC(raw, bands){
+  const r = Math.max(raw, 1);                  // log(0) is undefined; the FC scale starts at 1
   let b = 5;
   for(let i=0;i<6;i++){ if(r <= bands[i][1]){ b=i; break; } }
   const [eLo,eHi]=EQI[b], [lo,hi]=bands[b];
-  const lLo = Math.log10(Math.max(lo,1)), lHi = Math.log10(hi);
+  if(b === 0) return eLo + (r-lo)/(hi-lo)*(eHi-eLo);            // Good band -> linear (Eq 3.1)
+  const lLo = Math.log10(Math.max(lo,1)), lHi = Math.log10(hi);  // else -> logarithmic (Eq 3.3)
   return eLo + (Math.log10(r) - lLo)/(lHi - lLo)*(eHi - eLo);
 }
 // acidic pH: lower reading = worse, so interpolate from the neutral (high) end
@@ -415,7 +428,7 @@ function subIndex(key, raw){
   if(raw===null || isNaN(raw)) return null;
   let s;
   if(key==='pH')      s = (raw>=7.0) ? scoreAscending(raw,PH_ALK) : scoreAcid(raw);
-  else if(key==='FC') s = scoreLog(raw, LIMITS.FC);      // log scale — thesis Eq. 3.3
+  else if(key==='FC') s = scoreFC(raw, LIMITS.FC);       // hybrid: linear in Good, log above
   else                s = scoreAscending(raw, LIMITS[key]);
   return Math.round(s);
 }
@@ -690,20 +703,34 @@ function renderCharts(inS,outS,inRaw,outRaw){
   }
 }
 
-function buildLegend(){
-  const STD = ['NGT','CPCB','','','','',''];        // Good = NGT limit, Satisfactory = CPCB limit
-  $('legend').innerHTML=CATS.map(c=>{
+// Primary sources for the two compliant bands.
+const REF_NGT  = 'https://images.assettype.com/barandbench/import/2019/01/NS-Deshpande-v-UOI-NGT-order-Dec-21-2018.pdf';
+const REF_CPCB = 'https://cpcb.nic.in/GeneralStandards.pdf';
+
+const SCALE_COMPLIANCE = [
+  `Linked to <a href="${REF_NGT}" target="_blank" rel="noopener">NGT standards for sewage discharge</a>`,
+  `Linked to <a href="${REF_CPCB}" target="_blank" rel="noopener">CPCB standards</a>`,
+  'Non compliant with discharge standards',
+  'Non compliant with discharge standards',
+  'Non compliant with discharge standards',
+  'Non compliant with discharge standards',
+  'Non compliant with discharge standards'
+];
+
+function buildScaleTable(){
+  $('scaleRows').innerHTML = CATS.map(c=>{
     const col=COLOR(c.i);
-    const std = STD[c.i] ? ` <span style="opacity:.7;font-weight:500">· ${STD[c.i]}</span>` : '';
-    return `<span class="chip" style="background:${col.bg};color:${col.fg}">
-      <span style="width:9px;height:9px;border-radius:50%;background:${col.bar};display:inline-block"></span>
-      ${c.n} · ${CATRANGE[c.i]}${std}</span>`;
+    return `<tr>
+      <td class="num rng">${CATRANGE[c.i]}</td>
+      <td><span class="catchip" style="background:${col.bg};color:${col.fg};border-color:${col.bar}">${c.n}</span></td>
+      <td class="compcell">${SCALE_COMPLIANCE[c.i]}</td>
+    </tr>`;
   }).join('');
 }
 
 /* init */
 buildInputs();
-buildLegend();
+buildScaleTable();
 $('btnClear').onclick=()=>applyPreset('clear');
 $('btnDemo').onclick=()=>applyPreset('demo');
 $('btnRef').onclick=()=>applyPreset('ref');
