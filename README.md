@@ -2,7 +2,7 @@
 
 A single-page tool that grades sewage treatment plant (STP) performance by scoring the
 **inlet** (raw sewage) and **outlet** (treated effluent) on a common 0–500 index, and showing
-how far the water improved through treatment.
+the extent till which the sewage undergoes treatment.
 
 **Live:** https://gandhidaksh.github.io/EQI-Calculator/
 
@@ -34,51 +34,40 @@ Lower is better. A parameter **complies** when its sub-index is ≤ 100.
 
 ## How the score is computed
 
-Each raw reading is placed in its quality band and interpolated into a 0–500 sub-index.
-Most KPIs — and the alkaline side of pH — use **Equation 3.1**:
+Each raw concentration reading is placed in its quality band and interpolated in its corresponding score range to obtain the SI score in the defined index. The
+formula used depends on the parameter:
 
 ```
-SI_I = L_I + (U_I − L_I) × (C_I − C_L) / (C_U − C_L)
+Eq 1:  SI = L + (U − L) × (C − C_L) / (C_U − C_L)
+Eq 2:  SI = L + (U − L) × (C_U − C) / (C_U − C_L)
+Eq 3:  SI = L + (U − L) × (log C − log C_L) / (log C_U − log C_L)
 ```
 
-**Two cases are handled differently:**
+Where `SI` = sub-index score · `C` = measured concentration · `C_L`, `C_U` = lower and upper
+bounds of its band · `L`, `U` = lower and upper score bounds of that band.
 
-- **pH, acidic range — Equation 3.2.** pH is the only KPI that can be bad in either direction.
-  Below 7.0, quality worsens as pH *falls*, so interpolation runs in reverse — distance is
-  measured down from the upper (neutral) bound:
-  ```
-  SI_I = L_I + (U_I − L_I) × (C_U − C_I) / (C_U − C_L)
-  ```
-  pH change is reported as a shift toward neutral, not a removal %.
-
-- **FC — Equation 3.3 above the Good band.** Within the **Good** band (1–100 MPN/100 mL), FC uses
-  the same linear formula as every other parameter (Eq 3.1). Above that, faecal coliform varies
-  over a large exponential range of multiple orders, so each concentration term is
-  **log-transformed** before interpolating:
-  ```
-  SI_I = L_I + (U_I − L_I) × (log C_I − log C_L) / (log C_U − log C_L)
-  ```
-  For the same reason FC *reduction* is reported as **log removal** — log₁₀(inlet ÷ outlet) —
-  not a percentage. 2 log = a 100-fold reduction; 3 log = 1000-fold. Reporting "99%" vs "99.9%"
-  would hide a full order of magnitude.
-
-Where: `SI_I` = sub-index score of a KPI · `C_I` = concentration of the KPI ·
-`C_L`, `C_U` = lower and upper bounds of the KPI concentration range ·
-`L_I`, `U_I` = lower and upper score bounds of the category `C_I` fell in.
+- **Eq 1**: BOD, COD, TSS, TN, TP, the alkaline side of pH, and FC within the Good band
+  (1–100 MPN/100 mL).
+- **Eq 2**: the acidic side of pH. pH can be bad in either direction; below 7.0 the
+  interpolation runs in reverse, since a lower pH is worse. Its change is reported as a shift
+  toward neutral, not a removal %.
+- **Eq 3**: FC above the Good band. Faecal coliform spans several orders of magnitude, so each
+  concentration term is log-transformed before interpolating. For the same reason FC reduction
+  is reported as **log removal**, log₁₀(inlet ÷ outlet), not a percentage.
 
 **Combining the sub-indices:**
 
 - If **every parameter complies**, the overall EQI is the **maximum** of the seven sub-indices —
   the plant is graded on its worst-performing parameter.
 - If **any parameter fails**, the overall EQI is the **weighted mean of the non-compliant
-  parameters only** — so a serious breach cannot be diluted by good numbers elsewhere. The
+  parameters only** (so a serious breach cannot be diluted by good numbers elsewhere. The
   failing parameters are listed in brackets after the score, in decreasing order of sub-index —
-  e.g. `363 (TP, TSS)` — so the reported figure always shows where it came from.
+  e.g. `363 (TP, TSS)`), so the reported figure always shows where it came from.
 
 ## Validation
 
 The engine reproduces the reference Excel exactly. Clicking **Load Excel reference** loads the
-source sample and yields **EQI 363 — Very Poor**, matching the reference sheet's `EQI_wmean`.
+source sample and yields **EQI 363 (Very Poor)**, matching the reference sheet's `EQI_wmean`.
 
 | Parameter | Reading | Sub-index | Sheet |
 |---|---|---|---|
