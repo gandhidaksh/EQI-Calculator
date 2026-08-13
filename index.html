@@ -12,15 +12,15 @@
   :root{
     --ink:#1a2027; --muted:#5b6773; --line:#e3e8ee; --bg:#f4f6f9;
     --card:#ffffff; --shadow:0 1px 3px rgba(16,24,40,.06),0 1px 2px rgba(16,24,40,.04);
-    /* 6-category quality ramp — this IS the colour system.
-       Each step must be distinguishable from its neighbours at a glance, so the ramp
-       walks green -> lime -> amber -> orange -> deep orange -> red. */
-    --c0-fg:#1b5e20; --c0-bg:#dff0e1; --c0-bar:#2e7d32;   /* Good         */
-    --c1-fg:#33691e; --c1-bg:#eaf4d3; --c1-bar:#7cb342;   /* Satisfactory */
-    --c2-fg:#8a6d00; --c2-bg:#fdf0cc; --c2-bar:#f9a825;   /* Moderate     */
-    --c3-fg:#a2470a; --c3-bg:#fde4cd; --c3-bar:#ef6c00;   /* Poor         */
-    --c4-fg:#bf360c; --c4-bg:#fbd8cd; --c4-bar:#e64a19;   /* Very Poor    */
-    --c5-fg:#8e0000; --c5-bg:#f9ccd0; --c5-bar:#c62828;   /* Severe       */
+    /* 6-category quality ramp — the EXACT fill colours from the official EQI sheet.
+       --bar is the sheet's fill colour; --bg is a light tint for chip/box backgrounds;
+       --fg is a readable foreground on that tint. */
+    --c0-fg:#3a5a15; --c0-bg:#eaf4d8; --c0-bar:#9fce62;   /* Good         */
+    --c1-fg:#7a6a00; --c1-bg:#fbfbcf; --c1-bar:#ffff54;   /* Satisfactory */
+    --c2-fg:#8a5a00; --c2-bg:#fdeecb; --c2-bar:#f6c242;   /* Moderate     */
+    --c3-fg:#b02418; --c3-bg:#fcd6d2; --c3-bar:#ea3323;   /* Poor         */
+    --c4-fg:#4e2277; --c4-bg:#e5d9ef; --c4-bar:#68339b;   /* Very Poor    */
+    --c5-fg:#81180e; --c5-bg:#f3d2ce; --c5-bar:#81180e;   /* Severe       */
     --c6-fg:#4a0072; --c6-bg:#e6d4ee; --c6-bar:#6a1b9a;   /* Severe+  >500 */
   }
   *{box-sizing:border-box}
@@ -744,7 +744,7 @@ function renderCharts(inS,outS,inRaw,outRaw){
     remChart=new Chart($('remChart'),{type:'bar',
       data:{labels:PCT.map(p=>p.label),
             datasets:[{label:'Removal %',data:remData,
-              backgroundColor:PCT.map(()=>COLOR(1).bar),borderRadius:5}]},
+              backgroundColor:PCT.map(()=>COLOR(0).bar),borderRadius:5}]},
       options:{...baseOpts,plugins:{legend:{display:false}},
         scales:{...baseOpts.scales,y:{...baseOpts.scales.y,beginAtZero:false,min:yMin,max:100,title:{display:true,text:'% removed',font:{family:'Inter',size:11}}}}}
     });
